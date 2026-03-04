@@ -70,7 +70,7 @@ sed -i 's/^PermitRootLogin yes/PermitRootLogin prohibit-password/' /etc/ssh/sshd
 # Disable X11 forwarding
 sed -i 's/^X11Forwarding yes/X11Forwarding no/' /etc/ssh/sshd_config
 
-systemctl reload sshd
+systemctl reload ssh
 echo "  -> SSH hardened: password auth disabled, root login key-only, X11 forwarding off."
 
 echo ""

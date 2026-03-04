@@ -39,11 +39,14 @@ RedirectMatch 404 /\.svn
 # Security headers
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
-    Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
     Header always set X-XSS-Protection "0"
+
+    # Use CSP frame-ancestors instead of X-Frame-Options to allow
+    # your own domains to iframe each other while blocking external sites.
+    Header always set Content-Security-Policy "frame-ancestors 'self' *.ipvegan.com ipvegan.com davidwhittington.com www.davidwhittington.com 6kdave.com www.6kdave.com benwhittington.com www.benwhittington.com commodorecaverns.com www.commodorecaverns.com cosmicllama.com www.cosmicllama.com fujiconcepts.com www.fujiconcepts.com healingllama.com www.healingllama.com marielly.net www.marielly.net shabezo.com www.shabezo.com texartini.com www.texartini.com theatariclub.com www.theatariclub.com"
 </IfModule>
 SECEOF
 echo "  -> security.conf updated (backup: security.conf.bak)."
