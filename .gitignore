@@ -1,0 +1,19 @@
+# Raw scan data
+*.raw
+*.nmap
+*.xml
+scan-results/
+
+# Sensitive outputs
+credentials/
+*.pem
+*.key
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+*.swo
