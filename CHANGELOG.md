@@ -9,6 +9,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.4.0] — 2026-03-08
+
+### Added
+- `config.env` — central configuration file; all user-specific variables (SSH port, admin user, email, SMTP settings, CSP domains) now live in one place; scripts auto-discover it at repo root or `/etc/vps-security/config.env` with per-variable defaults as fallback
+- `bootstrap.sh` — single-command provisioner; sources `config.env`, runs all five hardening scripts in order with per-script log files under `logs/`, aborts on first failure, supports `--dry-run`
+- `scripts/audit/audit.sh` — read-only baseline checker; validates UFW rules, SSH config, fail2ban jails (SSH + Apache), Apache security headers, pending updates, and TLS cert expiry; color-coded PASS/WARN/FAIL output; exits 1 on any FAIL; `--json` flag for machine-readable output
+
+### Changed
+- All five hardening scripts now auto-discover and source `config.env`; hardcoded values (username, email, SSH port, CSP domains) replaced with config variables
+- All five hardening scripts now support `--dry-run` — prints every change that would be made without touching the system
+- `01-immediate-hardening.sh`: banner no longer hardcodes hostname (uses `hostname -f`); SSH port reads from `$SSH_PORT`
+- `02-apache-hardening.sh`: CSP `frame-ancestors` reads from `$CSP_FRAME_ANCESTORS`
+- `03-setup-admin-user.sh`: admin username reads from `$ADMIN_USER`; aborts with a clear error if unset or user does not exist
+- `04-monthly-updates-setup.sh`: email and SMTP settings read from config; msmtp configured with auth block when `SMTP_USER` is set
+- `05-log-monitoring-setup.sh`: email/from-address read from config; GoAccess report title uses live hostname
+
+### Fixed
+- `01-immediate-hardening.sh`: added `apache-auth`, `apache-badbots` (24h ban, 1-strike), and `apache-noscript` fail2ban jails — Apache jails were previously absent despite Apache being the primary attack surface
+
+---
+
 ## [0.3.0] — 2026-03-08
 
 ### Changed
