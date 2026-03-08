@@ -9,6 +9,10 @@ credentials/
 *.pem
 *.key
 
+# Logs
+*.log
+audit-*.txt
+
 # OS
 .DS_Store
 Thumbs.db
