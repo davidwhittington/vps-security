@@ -8,6 +8,14 @@ Designed to be **auditable, sequential, and safe** — each script is idempotent
 
 ---
 
+## Background
+
+This toolkit came out of necessity. Managing a growing number of projects across multiple VPS providers made it clear that ad-hoc server setup wasn't sustainable — every new deployment meant repeating the same hardening steps from memory, with inconsistent results and no audit trail.
+
+The goal was a standardized, repeatable baseline: cookie-cutter deployments that could stand up a secure server quickly, while still being flexible enough to accommodate the custom, one-off requirements that inevitably come with running a variety of distinct projects. Each server has its own quirks — different domain configurations, monitoring needs, or access patterns — and the toolkit is structured to handle both the common baseline and those edge cases without diverging into a tangle of server-specific scripts.
+
+---
+
 ## What It Hardens
 
 | Area | Coverage |
@@ -190,6 +198,7 @@ Store things like real audit reports with IPs and hostnames, SSH key lists, and 
 - [Customization Guide](docs/customization.md) — what to change before running scripts
 - [Audit Report Template](docs/TEMPLATE.md) — blank template for documenting findings
 - [VPS Hardening Guide](docs/VPS_HARDENING_GUIDE.html) — standalone offline reference
+- [Changelog](CHANGELOG.md) — version history
 
 ---
 
