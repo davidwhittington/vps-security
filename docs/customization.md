@@ -1,132 +1,130 @@
 # Customization Guide
 
-The hardening scripts are designed to be run as-is on most Ubuntu/Debian Apache servers, but a handful of values should be updated for your environment before running.
+All user-specific values live in `config.env` at the repo root. Fill it in once before running anything. The scripts auto-discover it and fall back to per-variable defaults if it is not found.
 
 ---
 
-## Script 01 — `01-immediate-hardening.sh`
+## config.env Reference
 
-**SSH Port**
+### `SSH_PORT`
 
-By default, UFW allows SSH on port 22. If you run SSH on a non-standard port, update these lines:
+The port SSH listens on. Default: `22`.
 
-```bash
-# Change 22 to your SSH port
-ufw allow 22/tcp comment 'SSH'
-```
-
-And in the fail2ban jail, change the port if needed:
-
-```ini
-[sshd]
-port = 2222   # or whatever your SSH port is
-```
-
-No other changes are typically needed for script 01.
-
----
-
-## Script 02 — `02-apache-hardening.sh`
-
-**Content Security Policy (`frame-ancestors`)**
-
-The CSP header controls which domains are allowed to embed your pages in iframes. The default value lists a set of example domains. Replace these with your own:
+Update this if you run SSH on a non-standard port. The value propagates automatically to the UFW rule and the fail2ban jail created by `01-immediate-hardening.sh`.
 
 ```bash
-Header always set Content-Security-Policy "frame-ancestors 'self' yourdomain.com www.yourdomain.com"
-```
-
-If you don't use iframes at all, you can simplify this to:
-
-```bash
-Header always set Content-Security-Policy "frame-ancestors 'none'"
-```
-
-Or use `X-Frame-Options` instead:
-
-```bash
-Header always set X-Frame-Options "SAMEORIGIN"
+SSH_PORT=2222
 ```
 
 ---
 
-## Script 03 — `03-setup-admin-user.sh`
+### `ADMIN_USER`
 
-**Admin username**
+The username to set up as a sudo admin in `03-setup-admin-user.sh`. No default — the script aborts if this is unset.
 
-Change this variable at the top of the script:
+The user must already exist on the server before running script 03. Create it first if needed:
 
 ```bash
-USERNAME="your-username"   # line 17
+adduser youruser
 ```
 
-The script will:
-- Set the user's shell to `/bin/bash`
-- Add them to the `sudo` group
-- Copy `/root/.ssh/authorized_keys` to their home directory
-
-Make sure this user already exists on the system, or create them first:
-
 ```bash
-adduser your-username
+ADMIN_USER="youruser"
 ```
 
 ---
 
-## Script 04 — `04-monthly-updates-setup.sh`
+### `ADMIN_EMAIL`
 
-**Email address**
-
-Set your address at the top of the script (it appears in two places — the outer script and the embedded monthly report script):
+Where to send reports and alerts. Used by `04-monthly-updates-setup.sh` (monthly upgrade report) and `05-log-monitoring-setup.sh` (Logwatch digest). No default — scripts abort if unset.
 
 ```bash
-EMAIL="you@example.com"   # line 7 and line 51
+ADMIN_EMAIL="you@example.com"
 ```
-
-**SMTP configuration**
-
-The script installs `msmtp` but includes a minimal placeholder config. You need to configure a working SMTP relay for email delivery. Edit the `msmtprc` block in the script:
-
-```bash
-# Example: using Gmail with an App Password
-account default
-host smtp.gmail.com
-port 587
-tls on
-tls_trust_file /etc/ssl/certs/ca-certificates.crt
-auth on
-user you@gmail.com
-password your-app-password
-from you@gmail.com
-```
-
-Alternatively, use a transactional email service (Postmark, Mailgun, SendGrid) as the relay — they provide SMTP credentials that work directly with msmtp.
 
 ---
 
-## Script 05 — `05-log-monitoring-setup.sh`
+### `MAIL_FROM`
 
-**Email addresses**
+The From address on outgoing server emails. Used by `05-log-monitoring-setup.sh` for the Logwatch configuration. Defaults to `server@<hostname>` if not set.
 
 ```bash
-EMAIL="you@example.com"       # line 7 — where Logwatch reports are sent
-MAIL_FROM="server@yourdomain.com"   # line 8 — the From address
+MAIL_FROM="server@yourdomain.com"
 ```
-
-**Reports URL**
-
-The GoAccess traffic report is saved to `/var/www/html/reports/traffic-report.html`. To serve it at a custom path or restrict access further, edit the report directory and `.htaccess` block in the script.
-
-The generated password for the reports directory is printed at the end of the script run — save it.
 
 ---
 
-## General Notes
+### `SMTP_HOST` / `SMTP_PORT`
 
-- **Run scripts in order** — each builds on the previous (e.g., fail2ban from 01 is used by 04 and 05)
-- **Test SSH access after script 01** before closing your current session
-- **Test email delivery** after setting up scripts 04 and 05 by running the report scripts manually:
-  ```bash
-  /usr/local/sbin/monthly-apt-report.sh
-  /usr/local/sbin/goaccess-daily-report.sh
-  ```
+SMTP relay host and port for `msmtp`. Used by `04-monthly-updates-setup.sh`.
+
+Common values:
+
+| Provider | Host | Port |
+|---|---|---|
+| Gmail | `smtp.gmail.com` | `587` |
+| Postmark | `smtp.postmarkapp.com` | `587` |
+| Mailgun | `smtp.mailgun.org` | `587` |
+| SendGrid | `smtp.sendgrid.net` | `587` |
+
+```bash
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+```
+
+---
+
+### `SMTP_USER` / `SMTP_PASS`
+
+SMTP authentication credentials. Leave empty to attempt unauthenticated relay, which rarely works from VPS providers.
+
+For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833) rather than your account password.
+
+```bash
+SMTP_USER="you@gmail.com"
+SMTP_PASS="your-app-password"
+```
+
+---
+
+### `CSP_FRAME_ANCESTORS`
+
+Controls which domains may embed your pages in iframes. Used by `02-apache-hardening.sh` to set the `Content-Security-Policy` header's `frame-ancestors` directive.
+
+Common configurations:
+
+```bash
+# Block all embedding
+CSP_FRAME_ANCESTORS="'none'"
+
+# Same-origin only
+CSP_FRAME_ANCESTORS="'self'"
+
+# Same-origin + specific trusted domains
+CSP_FRAME_ANCESTORS="'self' yourdomain.com www.yourdomain.com app.yourdomain.com"
+```
+
+---
+
+## Testing Before Applying
+
+Every hardening script and `bootstrap.sh` supports `--dry-run`:
+
+```bash
+bash bootstrap.sh --dry-run
+```
+
+This prints every change that would be made without touching the system. Run it after editing `config.env` to verify the values look correct before committing to a live run.
+
+---
+
+## Testing Email Delivery
+
+After running scripts 04 and 05, verify email delivery manually:
+
+```bash
+/usr/local/sbin/monthly-apt-report.sh
+/usr/local/sbin/goaccess-daily-report.sh
+```
+
+If mail does not arrive, check `/var/log/msmtp.log` and verify your SMTP credentials and relay configuration.
