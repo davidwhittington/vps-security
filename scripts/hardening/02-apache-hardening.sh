@@ -1,11 +1,44 @@
 #!/usr/bin/env bash
 # 02-apache-hardening.sh
-# Addresses HIGH findings: Apache info disclosure, security headers, mod_status
-# Run as root on the target server
+# Apache: security headers, CSP, ServerTokens, mod_status, .git/.svn blocking
+# Run as root on the target server.
 set -euo pipefail
 
+# --- Dry-run support ---
+DRYRUN=false
+for arg in "$@"; do [[ "$arg" == "--dry-run" ]] && DRYRUN=true; done
+
+cmd() {
+    if $DRYRUN; then echo "  [dry-run] $*"; return 0; fi
+    "$@"
+}
+
+# --- Config discovery ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${CONFIG_FILE:-}"
+if [[ -z "$CONFIG_FILE" ]]; then
+    for loc in \
+        "$SCRIPT_DIR/../../config.env" \
+        "$SCRIPT_DIR/../config.env" \
+        /etc/vps-security/config.env; do
+        if [[ -f "$loc" ]]; then CONFIG_FILE="$loc"; break; fi
+    done
+fi
+if [[ -n "$CONFIG_FILE" ]]; then
+    # shellcheck source=/dev/null
+    source "$CONFIG_FILE"
+    echo "  -> Config loaded: $CONFIG_FILE"
+else
+    echo "  WARNING: config.env not found — using defaults. See docs/customization.md"
+fi
+
+CSP_FRAME_ANCESTORS="${CSP_FRAME_ANCESTORS:-'self'}"
+
+# --- Banner ---
 echo "========================================="
-echo "  Apache Hardening Script"
+echo "  Apache Hardening"
+echo "  Host: $(hostname -f)"
+if $DRYRUN; then echo "  MODE: DRY RUN — no changes will be made"; fi
 echo "========================================="
 echo ""
 
@@ -14,16 +47,21 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# --- 1/4: mod_headers ---
 echo "[1/4] Enabling mod_headers..."
-a2enmod headers
+cmd a2enmod headers
 echo "  -> mod_headers enabled."
 
+# --- 2/4: security.conf ---
 echo ""
 echo "[2/4] Updating security.conf..."
-cp /etc/apache2/conf-enabled/security.conf /etc/apache2/conf-enabled/security.conf.bak
+SECCONF="/etc/apache2/conf-enabled/security.conf"
 
-cat > /etc/apache2/conf-enabled/security.conf << 'SECEOF'
-# Hardened security configuration
+if ! $DRYRUN; then
+    [[ -f "$SECCONF" ]] && cp "$SECCONF" "${SECCONF}.bak"
+
+    cat > "$SECCONF" << SECEOF
+# Hardened security configuration — managed by vps-security
 
 # Hide server version details
 ServerTokens Prod
@@ -43,30 +81,44 @@ RedirectMatch 404 /\.svn
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
     Header always set X-XSS-Protection "0"
-
-    # Use CSP frame-ancestors instead of X-Frame-Options to allow
-    # your own domains to iframe each other while blocking external sites.
-    Header always set Content-Security-Policy "frame-ancestors 'self' *.ipvegan.com ipvegan.com davidwhittington.com www.davidwhittington.com 6kdave.com www.6kdave.com benwhittington.com www.benwhittington.com commodorecaverns.com www.commodorecaverns.com cosmicllama.com www.cosmicllama.com fujiconcepts.com www.fujiconcepts.com healingllama.com www.healingllama.com marielly.net www.marielly.net shabezo.com www.shabezo.com texartini.com www.texartini.com theatariclub.com www.theatariclub.com"
+    Header always set Content-Security-Policy "frame-ancestors ${CSP_FRAME_ANCESTORS}"
 </IfModule>
 SECEOF
-echo "  -> security.conf updated (backup: security.conf.bak)."
+    echo "  -> security.conf updated (backup: ${SECCONF}.bak)."
+else
+    echo "  [dry-run] Would write $SECCONF"
+    echo "    - ServerTokens Prod / ServerSignature Off"
+    echo "    - HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy"
+    echo "    - CSP frame-ancestors: ${CSP_FRAME_ANCESTORS}"
+    echo "    - Block .git / .svn"
+fi
 
+# --- 3/4: mod_status ---
 echo ""
 echo "[3/4] Disabling mod_status..."
-a2dismod status 2>/dev/null || echo "  -> mod_status already disabled."
+cmd a2dismod status 2>/dev/null || echo "  -> mod_status already disabled."
 
+# --- 4/4: Test and reload ---
 echo ""
 echo "[4/4] Testing and reloading Apache..."
-if apache2ctl configtest 2>&1; then
-    systemctl reload apache2
-    echo "  -> Apache reloaded successfully."
+if ! $DRYRUN; then
+    if apache2ctl configtest 2>&1; then
+        systemctl reload apache2
+        echo "  -> Apache reloaded successfully."
+    else
+        echo "ERROR: Apache config test failed. Restoring backup." >&2
+        [[ -f "${SECCONF}.bak" ]] && cp "${SECCONF}.bak" "$SECCONF"
+        exit 1
+    fi
 else
-    echo "ERROR: Apache config test failed! Restoring backup."
-    cp /etc/apache2/conf-enabled/security.conf.bak /etc/apache2/conf-enabled/security.conf
-    exit 1
+    echo "  [dry-run] Would run: apache2ctl configtest && systemctl reload apache2"
 fi
 
 echo ""
 echo "========================================="
-echo "  Apache hardening complete!"
+if $DRYRUN; then
+    echo "  Dry run complete — no changes made."
+else
+    echo "  Apache hardening complete!"
+fi
 echo "========================================="
