@@ -9,6 +9,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.5.0] — 2026-03-08
+
+### Added
+- `scripts/audit/verify.sh` — post-run artifact and state checker organized per-script; confirms each hardening script's specific changes took effect (files written, services running, cron jobs present, user configuration); `--brief` flag suppresses passing checks; exits 1 on any failure
+- `.github/workflows/lint.yml` — CI pipeline running `shellcheck` (warning severity) and `bash -n` syntax check across all `.sh` files on push and PR
+
+### Changed
+- `bootstrap.sh`: runs `verify.sh --brief` automatically after a successful full hardening run, before the final summary
+
+---
+
 ## [0.4.0] — 2026-03-08
 
 ### Added

@@ -112,7 +112,11 @@ echo "  Failed:        $FAIL"
 echo "  Full log:      $LOG_FILE"
 if ! $DRYRUN && [[ "$FAIL" -eq 0 ]]; then
     echo ""
-    echo "  Next: verify with  bash scripts/audit/audit.sh"
+    echo "  Running post-run verification..."
+    echo ""
+    bash "${SCRIPT_DIR}/scripts/audit/verify.sh" --brief 2>&1 | tee -a "$LOG_FILE" || true
+    echo ""
+    echo "  Full audit: bash scripts/audit/audit.sh"
     echo "  IMPORTANT: test SSH in a new terminal before"
     echo "  closing this session."
 fi
