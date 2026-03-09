@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vps-security — Ubuntu VPS hardening toolkit</title>
+<meta name="description" content="Battle-tested bash scripts for hardening Ubuntu VPS servers. UFW, SSH, fail2ban, Apache, monitoring, cert alerts, and malware defense — one config file, one command.">
+<style>
+:root {
+  --bg:           #0d1117;
+  --surface:      #161b22;
+  --surface2:     #21262d;
+  --border:       #30363d;
+  --green:        #3fb950;
+  --green-dim:    #238636;
+  --green-glow:   rgba(63,185,80,.12);
+  --white:        #e6edf3;
+  --gray:         #8b949e;
+  --gray-dim:     #484f58;
+  --blue:         #79c0ff;
+  --font-mono:    'Courier New', Courier, monospace;
+  --font-sans:    system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html  { scroll-behavior:smooth; }
+body  {
+  background:var(--bg);
+  color:var(--white);
+  font-family:var(--font-sans);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ─── DOT GRID BACKGROUND ──────────────────────────────── */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:radial-gradient(circle,#30363d 1px,transparent 1px);
+  background-size:28px 28px;
+  opacity:.3;
+  pointer-events:none;
+  z-index:-1;
+}
+
+/* ─── HERO ─────────────────────────────────────────────── */
+.hero {
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:6rem 2rem;
+  max-width:1100px;
+  margin:0 auto;
+}
+
+.hero-eyebrow {
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  color:var(--green);
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  margin-bottom:1.75rem;
+  opacity:0;
+  animation:fadeUp .5s ease forwards;
+}
+
+.hero-eyebrow::before { content:'> '; }
+
+h1 {
+  font-family:var(--font-mono);
+  font-size:clamp(2.8rem,9vw,6rem);
+  font-weight:normal;
+  line-height:1.0;
+  letter-spacing:-.03em;
+  margin-bottom:.9rem;
+  opacity:0;
+  animation:fadeUp .5s ease .08s forwards;
+}
+
+h1 em {
+  font-style:normal;
+  color:var(--green);
+}
+
+.hero-tagline {
+  font-size:clamp(1.05rem,2.2vw,1.3rem);
+  color:var(--gray);
+  max-width:580px;
+  margin-bottom:.6rem;
+  opacity:0;
+  animation:fadeUp .5s ease .16s forwards;
+}
+
+.hero-desc {
+  font-family:var(--font-mono);
+  font-size:.82rem;
+  color:var(--gray);
+  max-width:540px;
+  margin-bottom:2.5rem;
+  padding-left:1rem;
+  border-left:2px solid var(--border);
+  opacity:0;
+  animation:fadeUp .5s ease .24s forwards;
+}
+
+.hero-actions {
+  display:flex;
+  gap:.875rem;
+  flex-wrap:wrap;
+  opacity:0;
+  animation:fadeUp .5s ease .32s forwards;
+}
+
+.btn {
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+  padding:.6rem 1.35rem;
+  font-family:var(--font-mono);
+  font-size:.85rem;
+  text-decoration:none;
+  border-radius:4px;
+  transition:all .2s ease;
+  white-space:nowrap;
+}
+
+.btn-primary {
+  background:var(--green);
+  color:#000;
+  border:1px solid var(--green);
+  font-weight:700;
+}
+.btn-primary:hover {
+  background:#4cd15e;
+  border-color:#4cd15e;
+  box-shadow:0 0 24px var(--green-glow);
+}
+
+.btn-secondary {
+  background:transparent;
+  color:var(--green);
+  border:1px solid var(--green);
+}
+.btn-secondary:hover {
+  background:var(--green-glow);
+  box-shadow:0 0 24px var(--green-glow);
+}
+
+.hero-tags {
+  margin-top:3rem;
+  display:flex;
+  flex-wrap:wrap;
+  gap:1.5rem;
+  opacity:0;
+  animation:fadeUp .5s ease .4s forwards;
+}
+
+.tag {
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  color:var(--gray-dim);
+  display:flex;
+  align-items:center;
+  gap:.4rem;
+}
+.tag-dot {
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--green);
+  flex-shrink:0;
+  animation:pulse 2.5s ease-in-out infinite;
+}
+
+/* ─── LAYOUT UTILITIES ──────────────────────────────────── */
+.divider {
+  border:none;
+  border-top:1px solid var(--border);
+  max-width:1100px;
+  margin:0 auto;
+}
+
+section {
+  padding:5rem 2rem;
+  max-width:1100px;
+  margin:0 auto;
+}
+
+.section-label {
+  font-family:var(--font-mono);
+  font-size:.68rem;
+  color:var(--green);
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  margin-bottom:.65rem;
+}
+.section-label::before { content:'// '; }
+
+.section-title {
+  font-family:var(--font-mono);
+  font-size:clamp(1.4rem,3.5vw,2.1rem);
+  font-weight:normal;
+  color:var(--white);
+  margin-bottom:2.5rem;
+  line-height:1.2;
+}
+
+/* ─── FEATURE GRID ──────────────────────────────────────── */
+.features {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(275px,1fr));
+  gap:1px;
+  background:var(--border);
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
+}
+
+.feature {
+  background:var(--surface);
+  padding:1.5rem;
+  transition:background .18s ease;
+  position:relative;
+}
+.feature:hover { background:var(--surface2); }
+.feature::after {
+  content:'';
+  position:absolute;
+  top:0; left:0; right:0;
+  height:2px;
+  background:transparent;
+  transition:background .18s ease;
+}
+.feature:hover::after { background:var(--green); }
+
+.feature-label {
+  font-family:var(--font-mono);
+  font-size:.63rem;
+  color:var(--green);
+  opacity:.75;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  margin-bottom:.6rem;
+}
+
+.feature-name {
+  font-family:var(--font-mono);
+  font-size:.95rem;
+  color:var(--white);
+  margin-bottom:.45rem;
+}
+
+.feature-detail {
+  font-size:.82rem;
+  color:var(--gray);
+  line-height:1.5;
+}
+
+/* ─── TERMINAL ──────────────────────────────────────────── */
+.terminal {
+  background:#010409;
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
+  font-family:var(--font-mono);
+  font-size:.875rem;
+}
+
+.term-bar {
+  background:var(--surface2);
+  padding:.7rem 1rem;
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+  border-bottom:1px solid var(--border);
+}
+
+.term-dots { display:flex; gap:.35rem; }
+
+.term-dot {
+  width:11px; height:11px;
+  border-radius:50%;
+}
+.td-r { background:#ff5f57; }
+.td-y { background:#ffbd2e; }
+.td-g { background:#28c840; }
+
+.term-name {
+  font-size:.72rem;
+  color:var(--gray-dim);
+  margin-left:.4rem;
+}
+
+.term-body {
+  padding:1.5rem;
+  line-height:2.1;
+}
+
+.term-line { display:block; }
+.p   { color:var(--green); user-select:none; }
+.cmd { color:var(--white); }
+.arg { color:var(--blue); }
+.cmt { color:var(--gray-dim); }
+
+.cursor {
+  display:inline-block;
+  width:.55em; height:1.1em;
+  background:var(--green);
+  vertical-align:text-bottom;
+  animation:blink 1s step-end infinite;
+}
+
+.quickstart-note {
+  margin-top:1.4rem;
+  font-size:.82rem;
+  color:var(--gray);
+}
+
+code {
+  font-family:var(--font-mono);
+  color:var(--green);
+  background:var(--surface);
+  padding:.1em .4em;
+  border-radius:3px;
+  font-size:.9em;
+}
+
+/* ─── INVENTORY ─────────────────────────────────────────── */
+.inventory {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1.5rem;
+}
+
+@media(max-width:768px) {
+  .inventory { grid-template-columns:1fr; }
+}
+
+.inv-panel {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
+}
+
+.inv-header {
+  background:var(--surface2);
+  padding:.7rem 1.2rem;
+  border-bottom:1px solid var(--border);
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  color:var(--green);
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+}
+.inv-header::before { content:'▸ '; }
+
+.inv-list { list-style:none; }
+
+.inv-item {
+  padding:.7rem 1.2rem;
+  border-bottom:1px solid var(--border);
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:.75rem;
+  align-items:baseline;
+  transition:background .15s ease;
+}
+.inv-item:last-child { border-bottom:none; }
+.inv-item:hover { background:var(--surface2); }
+
+.inv-script {
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  color:var(--green);
+  white-space:nowrap;
+}
+
+.inv-desc {
+  font-size:.78rem;
+  color:var(--gray);
+  line-height:1.4;
+}
+
+/* ─── FOOTER ─────────────────────────────────────────────── */
+footer {
+  border-top:1px solid var(--border);
+  padding:2rem;
+}
+
+.foot-inner {
+  max-width:1100px;
+  margin:0 auto;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:1rem;
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  color:var(--gray-dim);
+}
+
+.foot-inner a {
+  color:var(--gray);
+  text-decoration:none;
+  transition:color .2s;
+}
+.foot-inner a:hover { color:var(--green); }
+
+.foot-sep { color:var(--border); }
+
+/* ─── ANIMATIONS ─────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(14px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes blink {
+  0%,100% { opacity:1; }
+  50%      { opacity:0; }
+}
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:.5; transform:scale(.85); }
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────── */
+@media(max-width:600px) {
+  .hero   { padding:4rem 1.25rem; min-height:auto; padding-top:5rem; }
+  section { padding:3.5rem 1.25rem; }
+  .features { grid-template-columns:1fr; }
+  .foot-inner { flex-direction:column; text-align:center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── HERO ──────────────────────────────────────────────── -->
+<header>
+  <div class="hero">
+    <div class="hero-eyebrow">open source &nbsp;·&nbsp; ubuntu vps hardening</div>
+    <h1>vps<em>-security</em></h1>
+    <p class="hero-tagline">Battle-tested Ubuntu VPS hardening in minutes.</p>
+    <p class="hero-desc">11 hardening scripts + 9 audit scripts. Firewall, SSH, fail2ban, Apache,
+    monitoring, cert alerts, and malware defense — one config file, one command.</p>
+    <div class="hero-actions">
+      <a href="https://github.com/davidwhittington/vps-security" class="btn btn-primary">↗ View on GitHub</a>
+      <a href="#quickstart" class="btn btn-secondary">$ Quick Start</a>
+    </div>
+    <div class="hero-tags">
+      <span class="tag"><span class="tag-dot"></span>Ubuntu 24.04 LTS</span>
+      <span class="tag"><span class="tag-dot"></span>Debian 12 compatible</span>
+      <span class="tag"><span class="tag-dot"></span>MIT License</span>
+      <span class="tag"><span class="tag-dot"></span>--dry-run on every script</span>
+      <span class="tag"><span class="tag-dot"></span>CIS-aligned</span>
+    </div>
+  </div>
+</header>
+
+<hr class="divider">
+
+<!-- ─── WHAT IT DOES ──────────────────────────────────────── -->
+<section>
+  <div class="section-label">capabilities</div>
+  <h2 class="section-title">What gets hardened</h2>
+  <div class="features">
+
+    <div class="feature">
+      <div class="feature-label">01 · network</div>
+      <div class="feature-name">Firewall</div>
+      <p class="feature-detail">UFW with default-deny ingress, allowlist for SSH/HTTP/HTTPS, and per-port connection rate limiting on 80 and 443.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-label">01 · access</div>
+      <div class="feature-name">SSH Hardening</div>
+      <p class="feature-detail">Password auth off. Restricts to modern ciphers (AES-GCM, ChaCha20), MACs (HMAC-SHA2/ETM), and KexAlgorithms (Curve25519, ECDH). MaxAuthTries 3, LoginGraceTime 30.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-label">01 · intrusion</div>
+      <div class="feature-name">Fail2ban</div>
+      <p class="feature-detail">SSH + Apache jails: apache-auth, apache-badbots (1-strike, 24h ban), apache-noscript. Configurable ban window and retry limits via config.env.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-label">02 · web</div>
+      <div class="feature-name">Apache Hardening</div>
+      <p class="feature-detail">ServerTokens Prod, HSTS, CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy. TRACE off, mod_status off, .git access blocked.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-label">05 · observability</div>
+      <div class="feature-name">Monitoring</div>
+      <p class="feature-detail">Logwatch daily HTML email digest. GoAccess daily traffic report (password-protected). Monthly apt upgrade + disk + fail2ban status report via msmtp.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-label">06 · tls</div>
+      <div class="feature-name">Certificate Alerts</div>
+      <p class="feature-detail">Weekly certbot expiry monitor, independent of the monthly report. Emails on any cert expiring within 30 days (configurable via CERT_WARN_DAYS).</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-label">07–10 · malware</div>
+      <div class="feature-name">Malware Defense</div>
+      <p class="feature-detail">ClamAV weekly web-root scan with quarantine. rkhunter rootkit scanner with clean-system baseline. ModSecurity + OWASP CRS (DetectionOnly by default).</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-label">01 · kernel</div>
+      <div class="feature-name">Kernel Hardening</div>
+      <p class="feature-detail">sysctl: ICMP redirects disabled, martian packet logging, IP forwarding off, TCP SYN cookies, source routing disabled, reverse path filtering enabled.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-label">audit scripts</div>
+      <div class="feature-name">Audit Tools</div>
+      <p class="feature-detail">9 read-only posture scripts. Color-coded PASS/WARN/FAIL. Covers open ports, SSH config, security headers, AppArmor, SUID drift, world-writable files, and more.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-label">rollback</div>
+      <div class="feature-name">Rollback</div>
+      <p class="feature-detail">Every modifying script backs up files before touching them. rollback.sh restores .bak files per-script or all at once — with --dry-run preview.</p>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── QUICK START ───────────────────────────────────────── -->
+<section id="quickstart">
+  <div class="section-label">getting started</div>
+  <h2 class="section-title">Up and running in four commands</h2>
+  <div class="terminal">
+    <div class="term-bar">
+      <div class="term-dots">
+        <div class="term-dot td-r"></div>
+        <div class="term-dot td-y"></div>
+        <div class="term-dot td-g"></div>
+      </div>
+      <span class="term-name">root@server — bash</span>
+    </div>
+    <div class="term-body">
+      <span class="term-line"><span class="p">$ </span><span class="cmd">git clone</span> <span class="arg">https://github.com/davidwhittington/vps-security.git</span></span>
+      <span class="term-line"><span class="p">$ </span><span class="cmd">cd</span> <span class="arg">vps-security</span></span>
+      <span class="term-line"><span class="p">$ </span><span class="cmd">cp</span> <span class="arg">config.env.example config.env</span>  <span class="cmt"># fill in ADMIN_EMAIL, SSH_PORT, SMTP settings</span></span>
+      <span class="term-line"><span class="p">$ </span><span class="cmd">bash</span> <span class="arg">bootstrap.sh</span><span class="cursor"></span></span>
+    </div>
+  </div>
+  <p class="quickstart-note">
+    Every script supports <code>--dry-run</code> — pass it to <code>bootstrap.sh</code> to preview
+    every change before anything is applied. Run <code>bash scripts/audit/audit.sh</code> afterwards
+    to verify the full posture.
+  </p>
+</section>
+
+<hr class="divider">
+
+<!-- ─── SCRIPT INVENTORY ──────────────────────────────────── -->
+<section>
+  <div class="section-label">scripts</div>
+  <h2 class="section-title">Full script inventory</h2>
+  <div class="inventory">
+
+    <div class="inv-panel">
+      <div class="inv-header">scripts/hardening/</div>
+      <ul class="inv-list">
+        <li class="inv-item">
+          <span class="inv-script">01-immediate-hardening.sh</span>
+          <span class="inv-desc">UFW, fail2ban, SSH hardening, sysctl kernel params</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">02-apache-hardening.sh</span>
+          <span class="inv-desc">Security headers, ServerTokens, TRACE off, .git block</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">03-setup-admin-user.sh</span>
+          <span class="inv-desc">Promote user to sudo, propagate SSH keys from root</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">04-monthly-updates-setup.sh</span>
+          <span class="inv-desc">msmtp relay, monthly apt upgrade report and cron</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">05-log-monitoring-setup.sh</span>
+          <span class="inv-desc">Logwatch, GoAccess, logrotate for toolkit logs</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">06-cert-monitor-setup.sh</span>
+          <span class="inv-desc">Weekly TLS certificate expiry alerts via email</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">07-rkhunter-setup.sh</span>
+          <span class="inv-desc">Rootkit scanner with clean-system property baseline</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">08-auditd-setup.sh</span>
+          <span class="inv-desc">CIS-aligned kernel audit ruleset via auditd</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">09-clamav-setup.sh</span>
+          <span class="inv-desc">ClamAV weekly web-root scan with quarantine and alerts</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">10-modsecurity-setup.sh</span>
+          <span class="inv-desc">ModSecurity + OWASP CRS, DetectionOnly by default</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">11-vhost-hardener.sh</span>
+          <span class="inv-desc">Options -Indexes, AllowOverride None, deny dotfiles</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">rollback.sh</span>
+          <span class="inv-desc">Restore .bak config backups from scripts 01, 02, 04, 05</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="inv-panel">
+      <div class="inv-header">scripts/audit/</div>
+      <ul class="inv-list">
+        <li class="inv-item">
+          <span class="inv-script">audit.sh</span>
+          <span class="inv-desc">Full posture baseline — PASS/WARN/FAIL, --json flag</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">verify.sh</span>
+          <span class="inv-desc">Post-run artifact checker — confirms every script took effect</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">ports-check.sh</span>
+          <span class="inv-desc">Unexpected listening port detector vs. allowlist</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">ssh-audit.sh</span>
+          <span class="inv-desc">sshd config and weak cipher/MAC/KexAlgorithm checker</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">headers-check.sh</span>
+          <span class="inv-desc">Security header validator across all active vhost domains</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">unattended-upgrades-check.sh</span>
+          <span class="inv-desc">Auto-update status, last-run recency, held packages</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">apparmor-check.sh</span>
+          <span class="inv-desc">AppArmor kernel module status and enforce/complain counts</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">web-roots-writable.sh</span>
+          <span class="inv-desc">World-writable file and directory scanner under /var/www</span>
+        </li>
+        <li class="inv-item">
+          <span class="inv-script">suid-check.sh</span>
+          <span class="inv-desc">SUID/SGID binary baseline and filesystem drift detection</span>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─── FOOTER ─────────────────────────────────────────────── -->
+<footer>
+  <div class="foot-inner">
+    <span>MIT License</span>
+    <span class="foot-sep">·</span>
+    <a href="https://github.com/davidwhittington/vps-security">github.com/davidwhittington/vps-security</a>
+    <span class="foot-sep">·</span>
+    <span>Ubuntu 24.04 LTS &nbsp;·&nbsp; Debian 12</span>
+  </div>
+</footer>
+
+</body>
+</html>
