@@ -9,6 +9,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.9.0] — 2026-03-09
+
+### Added
+- `scripts/audit/memory-check.sh` — RAM and swap health check; flags servers with < 512MB RAM, no swap on low-RAM systems, swap usage > 80%, memory pressure < 10% available, and OOM kill events in kernel log (#66)
+- `scripts/audit/vhost-linter.sh` — Apache vhost config linter; checks each enabled vhost for missing security headers (HSTS, X-Content-Type-Options, Referrer-Policy, CSP), Options Indexes, AllowOverride All, SSL config on port 443 vhosts, and HTTP-to-HTTPS redirect; also checks global ServerTokens/ServerSignature/TraceEnable (#58)
+- `scripts/audit/preflight-check.sh` — dependency pre-flight check; verifies OS compatibility (Ubuntu/Debian), root privilege, SSH authorized_keys presence, required commands, per-script package availability, config.env and ADMIN_EMAIL, and internet connectivity (#54)
+- `scripts/audit/web-root-perms.sh` — web root file permission scanner; finds world-writable files/directories, unexpected ownership (not www-data or root), executable non-script files (webshell risk), PHP files with obfuscated eval() patterns, and sensitive files (.env, wp-config.php) with world-readable permissions; `--webroot` flag (#71)
+- `scripts/hardening/15-aide-setup.sh` — AIDE file integrity monitoring; installs aide, writes a focused config covering critical system paths (/etc, /bin, /sbin, SSH, sudoers, cron, vps-security scripts), initializes database, schedules weekly Sunday 4 AM check with email alert on changes (#49)
+- `scripts/hardening/16-php-hardening.sh` — PHP security baseline; auto-detects all installed PHP versions and SAPIs; applies: expose_php=Off, disable_functions (exec/system/passthru/etc.), allow_url_fopen=Off, allow_url_include=Off, display_errors=Off, secure session cookies (httponly/secure/samesite), upload limits; backs up each php.ini before modifying (#43)
+- `scripts/hardening/17-mysql-hardening.sh` — MySQL/MariaDB security baseline; removes anonymous users, removes remote root login, drops test database, flushes privileges; writes `/etc/mysql/conf.d/security.cnf` with bind-address=127.0.0.1, local-infile=0, symbolic-links=0, skip-show-database; uses socket auth (#67)
+- `scripts/hardening/18-disk-alert-setup.sh` — disk usage alerting cron; creates `/usr/local/sbin/disk-usage-check.sh` checking all filesystems (disk and inode usage) against configurable `DISK_WARN_PCT` threshold (default 80%); emails `ADMIN_EMAIL` on breach; daily 7 AM cron (#42)
+- `scripts/hardening/ssh-key-rotate.sh` — SSH key rotation helper; `--show` displays current keys with fingerprints; `--add-key` validates and adds a new key; `--remove-line N` removes an old key by line number with lockout protection (refuses to remove last key); `--user` targets non-root users; backs up authorized_keys before every change (#47)
+- `docs/INCIDENT_RESPONSE.md` — IR playbook; severity levels (P1-P4), first response commands, scenario playbooks (brute-force SSH, webshell, unauthorized root access, AIDE alert, suspicious process, disk exhaustion), containment options, evidence collection, post-incident re-baselining (#60)
+- `docs/PROVIDER_NOTES.md` — per-provider gotchas and configuration notes; covers DigitalOcean, Hetzner, Vultr, Linode/Akamai, AWS EC2/Lightsail, OVH; cloud firewall interaction, console access, private networking, cloud-init quirks (#50)
+
+---
+
 ## [0.8.0] — 2026-03-09
 
 ### Added
