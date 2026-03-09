@@ -33,9 +33,9 @@ ALLOWED_PORTS="${ALLOWED_PORTS:-${SSH_PORT} 80 443}"
 
 # --- Output ---
 if [[ -t 1 ]]; then
-    GREEN="\033[0;32m" YELLOW="\033[0;33m" RED="\033[0;31m" RESET="\033[0m"
+    GREEN="\033[0;32m" RED="\033[0;31m" RESET="\033[0m"
 else
-    GREEN="" YELLOW="" RED="" RESET=""
+    GREEN="" RED="" RESET=""
 fi
 
 UNEXPECTED=0

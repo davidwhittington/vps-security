@@ -106,7 +106,6 @@ CRS_DIR="/etc/modsecurity/crs"
 if ! $DRYRUN; then
     # Try package first (available in Ubuntu 22.04+)
     if apt-get install -y -qq modsecurity-crs 2>/dev/null; then
-        CRS_INSTALLED_VIA="apt"
         # Locate where apt installed the CRS
         CRS_APT_DIR=$(dpkg -L modsecurity-crs 2>/dev/null | grep 'crs-setup.conf' | head -1 | xargs dirname 2>/dev/null || true)
         if [[ -n "$CRS_APT_DIR" ]]; then
@@ -115,7 +114,6 @@ if ! $DRYRUN; then
     else
         # Fallback: download from GitHub releases
         echo "  apt package not found — downloading from GitHub..."
-        CRS_INSTALLED_VIA="github"
         mkdir -p "$CRS_DIR"
         CRS_URL="https://github.com/coreruleset/coreruleset/archive/refs/tags/v4.0.0.tar.gz"
         curl -fsSL "$CRS_URL" | tar -xz -C "$CRS_DIR" --strip-components=1
