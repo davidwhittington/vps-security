@@ -128,3 +128,82 @@ After running scripts 04 and 05, verify email delivery manually:
 ```
 
 If mail does not arrive, check `/var/log/msmtp.log` and verify your SMTP credentials and relay configuration.
+
+---
+
+## Per-server Overrides (config.env.local)
+
+When managing multiple servers, each server may need a slightly different configuration (different email, different SSH port, or different SMTP relay). The recommended pattern is to use `config.env` as the shared base and a server-specific `config.env.local` for overrides.
+
+### Structure
+
+```
+private/
+  servers/
+    server1.example.com/
+      config.env.local    # server-specific overrides
+    server2.example.com/
+      config.env.local
+```
+
+### How it works
+
+Export `CONFIG_FILE` to point at your base config, then source the override file on top:
+
+```bash
+export CONFIG_FILE=/etc/vps-security/config.env
+source /etc/vps-security/config.env.local   # optional override
+bash bootstrap.sh
+```
+
+Or combine them in your deployment workflow:
+
+```bash
+# Merge base + override into a single file for the target server
+cat config.env private/servers/server2.example.com/config.env.local \
+    > /tmp/server2-config.env
+
+ssh root@server2 "CONFIG_FILE=/tmp/server2-config.env bash -s" < bootstrap.sh
+```
+
+### Example config.env.local
+
+```bash
+# server2.example.com overrides
+SSH_PORT=2222
+ADMIN_EMAIL=ops-server2@example.com
+SMTP_HOST=smtp.mailgun.org
+SMTP_PORT=587
+SMTP_USER=postmaster@mg.example.com
+SMTP_PASS=your-mailgun-api-key
+```
+
+The private submodule is the right home for these files — they contain real server details and credentials that must not be in the public repo.
+
+---
+
+## Debian 12 (Bookworm) Notes
+
+The hardening scripts are developed and tested on Ubuntu 24.04 LTS. Most steps are compatible with Debian 12, with the following differences:
+
+| Area | Ubuntu 24.04 | Debian 12 |
+|---|---|---|
+| Certbot | `snap install certbot` | `apt install certbot` |
+| SSH service name | `ssh` | `ssh` (same) |
+| fail2ban filter paths | `/var/log/auth.log` | `/var/log/auth.log` (same) |
+| AppArmor | Pre-installed | Pre-installed (may differ in profile set) |
+| snap packages | Available | Not available by default |
+
+If running on Debian 12, install certbot via apt rather than snap:
+
+```bash
+apt install certbot python3-certbot-apache
+```
+
+Then update the certbot path check in `06-cert-monitor-setup.sh` if needed:
+
+```bash
+CERTBOT="$(command -v certbot)"
+```
+
+All other scripts run without modification on Debian 12. Testing on Debian 12 is tracked in [issue #9](https://github.com/davidwhittington/vps-security/issues/9).

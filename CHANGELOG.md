@@ -9,6 +9,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.7.0] — 2026-03-08
+
+### Added
+- `scripts/hardening/07-rkhunter-setup.sh` — installs rkhunter, configures email alerts, sets clean-system baseline (`--propupd`), and schedules weekly Sunday scan via cron (#16)
+- `scripts/hardening/08-auditd-setup.sh` — installs auditd and audispd-plugins, writes CIS Benchmark-aligned ruleset covering identity changes, DAC permissions, SUID execution, mounts, deletions, sudo, kernel modules, and SSH key changes (#17)
+- `scripts/hardening/09-clamav-setup.sh` — installs ClamAV, updates definitions via freshclam, creates weekly web-root scan script with quarantine and email alert on detection, schedules Saturday 2 AM cron (#24)
+- `scripts/hardening/10-modsecurity-setup.sh` — installs mod_security2, configures OWASP CRS in DetectionOnly mode (safe default), writes Apache include, and creates audit log at `/var/log/apache2/modsec_audit.log` (#18)
+- `scripts/hardening/11-vhost-hardener.sh` — writes `/etc/apache2/conf-available/vhost-hardening.conf` applying `Options -Indexes -FollowSymLinks`, `AllowOverride None`, and access rules blocking dotfiles, VCS directories, backup files, and env files across all web roots (#12)
+- `scripts/hardening/rollback.sh` — restores `.bak` backups created by scripts 01, 02, 04, and 05; supports `--script <01|02|04|05|all>` and `--dry-run` (#8)
+- `scripts/audit/suid-check.sh` — scans filesystem for SUID/SGID binaries, compares against saved baseline, flags new additions; `--update` flag refreshes the baseline; exits 1 on unexpected drift (#20)
+- `docs/RUNBOOK.md` — operational runbook covering provisioning, cert renewal, SSH key rotation, fail2ban unban, disk space, audit failures, rollback, adding domains, and full server rebuild (#29)
+- `private/servers/inventory.yml` — server inventory schema with all domains and configuration metadata for server1.ipvegan.com (#14)
+
+### Changed
+- `docs/customization.md`: added per-server `config.env.local` override pattern for multi-server deployments (#30); added Debian 12 compatibility notes with key differences from Ubuntu 24.04 (#9)
+
+---
+
 ## [0.6.0] — 2026-03-08
 
 ### Added
