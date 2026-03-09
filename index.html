@@ -245,6 +245,23 @@
     footer a { color: var(--muted); }
     footer a:hover { color: var(--text); }
 
+    /* ── Warning banner ─────────────────────────────────── */
+    .warning-banner {
+      max-width: 560px;
+      margin: 0 auto 2rem;
+      background: rgba(210, 153, 34, 0.08);
+      border: 1px solid rgba(210, 153, 34, 0.4);
+      border-radius: 0.6rem;
+      padding: 1rem 1.25rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      text-align: left;
+    }
+    .warning-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.05rem; }
+    .warning-text { font-size: 0.85rem; color: var(--muted); line-height: 1.55; }
+    .warning-text strong { color: #d29922; }
+
     /* ── Responsive ──────────────────────────────────────── */
     @media (max-width: 600px) {
       nav { flex-direction: column; gap: 1rem; }
@@ -275,6 +292,17 @@
     One config file, one command &mdash; firewall, SSH, fail2ban, Apache, monitoring, cert alerts,
     and malware defense all configured and verified.
   </p>
+
+  <div class="warning-banner">
+    <span class="warning-icon">⚠️</span>
+    <span class="warning-text">
+      <strong>Test before you deploy.</strong>
+      These scripts modify firewall rules, SSH configuration, kernel parameters, and other
+      system-level settings. Always validate in a staging or development environment before
+      applying to production servers. Review each script and understand what it does before
+      running it as root. Every script supports <code style="font-family:monospace;color:var(--green)">--dry-run</code> &mdash; use it first.
+    </span>
+  </div>
 
   <div class="install-block">
     <div class="install-label">Get started</div>
