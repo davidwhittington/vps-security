@@ -4,17 +4,32 @@
 # Read-only. Profile-aware dispatcher: runs core checks always, web checks
 # when profile is web-server (default).
 # Exits 0 if all checks pass, 1 if any fail.
-#
-# Usage:
-#   bash scripts/audit/audit.sh
-#   bash scripts/audit/audit.sh --profile baseline
-#   bash scripts/audit/audit.sh --profile web-server
-#   bash scripts/audit/audit.sh --json
-#   bash scripts/audit/audit.sh --report           # Markdown report (default)
-#   bash scripts/audit/audit.sh --report md
-#   bash scripts/audit/audit.sh --report html
-#   bash scripts/audit/audit.sh --report html --output /tmp/audit.html
 set -uo pipefail
+
+usage() {
+    cat <<EOF
+Usage: audit.sh [OPTIONS]
+
+Run security posture checks against this server. Read-only — makes no changes.
+Exits 0 if all checks pass, non-zero if any fail.
+
+Options:
+  --profile PROFILE       Profile to audit (default: web-server)
+                            baseline    — core checks only (SSH, firewall, users, services, etc.)
+                            web-server  — core + Apache headers, TLS certificates, vhost config
+  --json                  Output results as JSON to stdout
+  --report [FORMAT]       Write a report file; FORMAT is md (default) or html
+  --output PATH           Write the report to PATH instead of the default timestamped filename
+  --help, -h              Show this help
+
+Examples:
+  bash scripts/audit/audit.sh
+  bash scripts/audit/audit.sh --profile baseline
+  bash scripts/audit/audit.sh --report html --output /tmp/audit.html
+  bash scripts/audit/audit.sh --json | jq .
+  linux-security-audit --profile web-server --report md
+EOF
+}
 
 # --- Args ---
 JSON=false
@@ -25,10 +40,12 @@ PROFILE="web-server"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --json)    JSON=true ;;
-        --profile) PROFILE="${2:-web-server}"; shift ;;
-        --report)  REPORT=true; [[ "${2:-}" =~ ^(md|html)$ ]] && { REPORT_FMT="$2"; shift; } ;;
-        --output)  REPORT_OUTPUT="${2:-}"; shift ;;
+        --json)     JSON=true ;;
+        --profile)  PROFILE="${2:-web-server}"; shift ;;
+        --report)   REPORT=true; [[ "${2:-}" =~ ^(md|html)$ ]] && { REPORT_FMT="$2"; shift; } ;;
+        --output)   REPORT_OUTPUT="${2:-}"; shift ;;
+        --help|-h)  usage; exit 0 ;;
+        *)          echo "ERROR: Unknown argument: $1" >&2; usage >&2; exit 1 ;;
     esac
     shift
 done

@@ -1,17 +1,45 @@
 #!/usr/bin/env bash
 # preflight-check.sh — dependency pre-flight check
 #
-# Verifies all tools required by vps-security are present and that
+# Verifies all tools required by linux-security are present and that
 # the server environment is compatible before running bootstrap.sh.
 # Read-only. Exits 1 if any required dependency is missing.
-#
-# Usage:
-#   bash scripts/core/audit/preflight-check.sh
 set -uo pipefail
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib"
 # shellcheck source=/dev/null
 source "${LIB_DIR}/output.sh"
+
+usage() {
+    cat <<EOF
+Usage: preflight-check.sh [OPTIONS]
+
+Verify that this server meets all prerequisites before running bootstrap.sh.
+Read-only — makes no changes. Exits 1 if any required dependency is missing.
+
+Checks performed:
+  OS compatibility      Ubuntu 22.04/24.04 or Debian 12
+  Root privileges       Required by all hardening scripts
+  SSH authorized_keys   Ensures you won't be locked out after SSH hardening
+  Required tools        apt-get, systemctl, curl, openssl, hostname
+  Package status        ufw, fail2ban, apache2, msmtp, logwatch, certbot
+  Configuration         config.env loaded with ADMIN_EMAIL set
+  Network connectivity  Distro package mirror reachable
+
+Options:
+  --help, -h    Show this help
+
+Examples:
+  bash scripts/core/audit/preflight-check.sh
+EOF
+}
+
+for arg in "$@"; do
+    case "$arg" in
+        --help|-h) usage; exit 0 ;;
+        *) echo "ERROR: Unknown argument: $arg" >&2; usage >&2; exit 1 ;;
+    esac
+done
 
 # --- Config discovery ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

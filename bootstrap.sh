@@ -3,15 +3,32 @@
 #
 # Sources config.env (and config.web.env for the web-server profile), runs all
 # hardening scripts listed in the selected profile, and logs each run.
-# Exits non-zero if any script fails.
-#
-# Usage:
-#   bash bootstrap.sh                          # web-server profile (full stack)
-#   bash bootstrap.sh --profile baseline       # core-only (any Ubuntu/Debian server)
-#   bash bootstrap.sh --profile web-server     # core + Apache/PHP/MySQL hardening
-#   bash bootstrap.sh --dry-run                # preview all changes, make none
-#   bash bootstrap.sh --profile baseline --dry-run
+# Exits non-zero if any script fails. Run as root.
 set -euo pipefail
+
+usage() {
+    cat <<EOF
+Usage: bootstrap.sh [OPTIONS]
+
+Run all hardening scripts for the selected profile. Must be run as root.
+
+Options:
+  --profile PROFILE   Profile to run (default: web-server)
+                        baseline    — core hardening only; works on any Ubuntu/Debian server
+                        web-server  — core + Apache, PHP, MySQL, certbot hardening
+  --dry-run           Preview every change without applying anything
+  --help, -h          Show this help
+
+Profiles are defined in profiles/*.conf — plain text lists of scripts to run in order.
+Config is read from config.env or /etc/linux-security/config.env.
+
+Examples:
+  bash bootstrap.sh                                # full web-server stack (default)
+  bash bootstrap.sh --profile baseline             # core hardening only
+  bash bootstrap.sh --profile baseline --dry-run   # preview baseline changes
+  bash bootstrap.sh --profile web-server           # explicit full stack
+EOF
+}
 
 # --- Args ---
 DRYRUN=false
@@ -19,9 +36,10 @@ PROFILE="web-server"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --dry-run) DRYRUN=true ;;
-        --profile) PROFILE="${2:-web-server}"; shift ;;
-        *) ;;
+        --dry-run)  DRYRUN=true ;;
+        --profile)  PROFILE="${2:-web-server}"; shift ;;
+        --help|-h)  usage; exit 0 ;;
+        *)          echo "ERROR: Unknown argument: $1" >&2; usage >&2; exit 1 ;;
     esac
     shift
 done

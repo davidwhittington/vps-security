@@ -1,18 +1,42 @@
 #!/usr/bin/env bash
 # install.sh — linux-security single-command installer
 #
-# Usage:
-#   bash install.sh                    # install from local clone
-#   bash install.sh --prefix /opt/foo  # custom install prefix
-#   bash install.sh --no-symlinks      # skip /usr/local/bin/ symlinks
-#   bash install.sh --upgrade          # upgrade, preserve config
-#   bash install.sh --uninstall        # remove installed files
-#
-#   Remote one-liner:
-#   curl -fsSL https://raw.githubusercontent.com/davidwhittington/linux-security/main/install.sh | bash
-#
+# Copies scripts to /opt/linux-security/, config templates to
+# /etc/linux-security/, and symlinks the entry points into /usr/local/bin/.
 # Run as root on the target server.
 set -euo pipefail
+
+usage() {
+    cat <<EOF
+Usage: install.sh [OPTIONS]
+
+Install, upgrade, or uninstall linux-security system-wide. Must be run as root.
+
+Options:
+  --prefix PATH     Install scripts to PATH instead of /opt/linux-security
+  --no-symlinks     Skip creating symlinks in /usr/local/bin/
+  --upgrade         Upgrade an existing install; preserves /etc/linux-security/ config
+  --uninstall       Remove installed files; preserves /etc/linux-security/ config
+  --help, -h        Show this help
+
+After install, files are placed at:
+  /opt/linux-security/          scripts, profiles, lib, docs, VERSION
+  /etc/linux-security/          config.env and config.web.env (from examples, first install only)
+  /usr/local/bin/
+    linux-security-bootstrap    symlink to bootstrap.sh
+    linux-security-audit        symlink to scripts/audit/audit.sh
+
+Examples:
+  bash install.sh                          # install from local clone
+  bash install.sh --prefix /opt/custom     # custom install directory
+  bash install.sh --no-symlinks            # skip /usr/local/bin/ symlinks
+  bash install.sh --upgrade                # upgrade scripts, preserve config
+  bash install.sh --uninstall              # remove installed files
+
+  # Remote one-liner (run as root on target server):
+  curl -fsSL https://raw.githubusercontent.com/davidwhittington/linux-security/main/install.sh | bash
+EOF
+}
 
 # --- Defaults ---
 INSTALL_PREFIX="/opt/linux-security"
@@ -35,11 +59,10 @@ while [[ $# -gt 0 ]]; do
         --uninstall)
             MODE="uninstall" ;;
         --help|-h)
-            grep '^#' "$0" | grep -v '#!/' | sed 's/^# \?//'
-            exit 0 ;;
+            usage; exit 0 ;;
         *)
             echo "ERROR: Unknown argument: $1" >&2
-            exit 1 ;;
+            usage >&2; exit 1 ;;
     esac
     shift
 done
