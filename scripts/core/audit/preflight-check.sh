@@ -74,7 +74,7 @@ if [[ -f /etc/os-release ]]; then
         check_fail "OS: ${OS_NAME}" "linux-security targets Ubuntu 22.04/24.04 and Debian 12. Other distros may work but are untested."
     fi
 
-    if [[ "$OS_ID" == "ubuntu" && "${OS_VER:-0}" < "22.04" ]]; then
+    if [[ "$OS_ID" == "ubuntu" ]] && [[ "$(echo "${OS_VER:-0}" | cut -d. -f1)" -lt 22 ]]; then
         check_fail "Ubuntu version ${OS_VER}" "Ubuntu 22.04+ required (24.04 recommended)"
     fi
 else

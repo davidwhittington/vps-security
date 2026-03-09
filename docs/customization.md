@@ -134,6 +134,39 @@ WEB_ROOTS_DIR="/var/www"
 
 ---
 
+## Confirmation Prompts
+
+By default, `bootstrap.sh` shows a single confirmation prompt before running any scripts:
+
+```
+  Type AGREE to continue or Ctrl+C to abort:
+```
+
+Type `AGREE` and press Enter to proceed. This prompt fires once per bootstrap run — individual sub-scripts do not prompt again when called from bootstrap.
+
+**Skip the prompt with `--confirm`:**
+
+```bash
+bash bootstrap.sh --confirm
+bash bootstrap.sh --confirm --profile baseline
+```
+
+Use `--confirm` for automation, CI pipelines, or repeat runs where the prompt is unwanted.
+
+**Behavior summary:**
+
+| Invocation | Prompts |
+|---|---|
+| `bash bootstrap.sh` | Once, at the top of bootstrap |
+| `bash bootstrap.sh --confirm` | Never — skipped entirely |
+| `bash bootstrap.sh --dry-run` | Never — dry-run implies no changes |
+| `bash scripts/core/hardening/01-immediate-hardening.sh` | Once, in that script |
+| `bash scripts/core/hardening/01-immediate-hardening.sh --confirm` | Never |
+
+When running scripts individually, each prompts independently. The single-prompt guarantee only applies when running through `bootstrap.sh`.
+
+---
+
 ## Testing Before Applying
 
 Every hardening script and `bootstrap.sh` supports `--dry-run`:

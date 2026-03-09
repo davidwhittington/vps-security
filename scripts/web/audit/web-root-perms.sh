@@ -82,8 +82,8 @@ if [[ -n "$EXEC_FILES" ]]; then
 fi
 
 # PHP files with suspicious names (webshell indicators)
-SUSPICIOUS=$(find "$WEB_ROOT" -type f -name "*.php" 2>/dev/null \
-    | xargs grep -l "eval\s*(base64_decode\|str_rot13\|gzinflate\|gzuncompress" 2>/dev/null \
+SUSPICIOUS=$(find "$WEB_ROOT" -type f -name "*.php" -print0 2>/dev/null \
+    | xargs -0 grep -l "eval\s*(base64_decode\|str_rot13\|gzinflate\|gzuncompress" 2>/dev/null \
     | head -10 || true)
 if [[ -n "$SUSPICIOUS" ]]; then
     check_fail "Suspicious PHP files (possible webshells)" "Obfuscated PHP eval() detected"

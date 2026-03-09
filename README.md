@@ -91,6 +91,7 @@ bash bootstrap.sh --profile baseline     # core controls only (any server)
 bash bootstrap.sh --profile web-server   # core + Apache/PHP/MySQL hardening
 bash bootstrap.sh --dry-run              # preview all changes first
 bash bootstrap.sh --profile baseline --dry-run
+bash bootstrap.sh --confirm              # skip the AGREE prompt (automation/CI)
 ```
 
 Option B — run scripts individually in order:

@@ -115,6 +115,7 @@ require_confirm() {
 }
 
 require_confirm
+CONFIRM=true   # prompt already given (or skipped); sub-scripts should not re-prompt
 
 mkdir -p "$LOG_DIR"
 

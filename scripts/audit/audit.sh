@@ -438,6 +438,7 @@ MDEOF
 
 # ── HTML report ──────────────────────────────────────────────────────────────
 generate_html() {
+    # shellcheck disable=SC2034
     local status_class="pass"
     [[ "$WARN" -gt 0 ]] && status_class="warn"
     [[ "$FAIL" -gt 0 ]] && status_class="fail"

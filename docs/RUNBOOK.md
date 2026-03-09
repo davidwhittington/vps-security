@@ -45,6 +45,12 @@ export CONFIG_FILE=/etc/linux-security/config.env
 bash bootstrap.sh
 ```
 
+Bootstrap prompts once with "Type AGREE to continue" before running any scripts. All sub-scripts receive `--confirm` automatically and do not prompt again. For non-interactive use (CI, automation), pass `--confirm` to skip the prompt entirely:
+
+```bash
+bash bootstrap.sh --confirm
+```
+
 Verify the run:
 
 ```bash

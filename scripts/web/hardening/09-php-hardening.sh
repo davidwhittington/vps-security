@@ -72,7 +72,6 @@ echo "[1/${STEPS}] Detecting installed PHP versions..."
 
 PHP_INI_FILES=()
 for dir in /etc/php/*/; do
-    ver=$(basename "$dir")
     for sapi in apache2 fpm cli; do
         ini="${dir}${sapi}/php.ini"
         if [[ -f "$ini" ]]; then

@@ -14,10 +14,9 @@ if [[ -t 1 ]]; then
     COL_GREEN="\033[0;32m"
     COL_YELLOW="\033[0;33m"
     COL_RED="\033[0;31m"
-    COL_BOLD="\033[1m"
     COL_RESET="\033[0m"
 else
-    COL_GREEN="" COL_YELLOW="" COL_RED="" COL_BOLD="" COL_RESET=""
+    COL_GREEN="" COL_YELLOW="" COL_RED="" COL_RESET=""
 fi
 
 # Failure counter — reset to 0 on source; scripts should check "$FAIL" at end

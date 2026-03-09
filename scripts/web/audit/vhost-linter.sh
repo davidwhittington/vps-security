@@ -35,7 +35,6 @@ if [[ ! -d "$VHOST_DIR" ]]; then
     exit 1
 fi
 
-VHOST_FILES=("$VHOST_DIR"/*.conf "$VHOST_DIR"/*.conf.*)
 VHOST_COUNT=0
 
 for vhost in "${VHOST_DIR}"/*.conf; do
