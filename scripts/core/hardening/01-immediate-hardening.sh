@@ -6,7 +6,23 @@ set -euo pipefail
 
 # --- Dry-run support ---
 DRYRUN=false
-for arg in "$@"; do [[ "$arg" == "--dry-run" ]] && DRYRUN=true; done
+CONFIRM=false
+for arg in "$@"; do
+    [[ "$arg" == "--dry-run" ]] && DRYRUN=true
+    [[ "$arg" == "--confirm" ]] && CONFIRM=true
+    if [[ "$arg" == "--help" || "$arg" == "-h" ]]; then
+        echo "01-immediate-hardening.sh — SSH hardening, UFW firewall, sysctl kernel parameters, and fail2ban setup"
+        echo
+        echo "Usage:"
+        echo "  bash scripts/core/hardening/01-immediate-hardening.sh [--dry-run] [--confirm]"
+        echo
+        echo "Flags:"
+        echo "  --dry-run   Preview all changes without applying anything"
+        echo "  --confirm   Skip the interactive confirmation prompt"
+        echo "  --help      Show this help and exit"
+        exit 0
+    fi
+done
 
 cmd() {
     if $DRYRUN; then echo "  [dry-run] $*"; return 0; fi
@@ -47,6 +63,17 @@ if [[ $EUID -ne 0 ]]; then
     echo "ERROR: This script must be run as root." >&2
     exit 1
 fi
+
+require_confirm() {
+    $CONFIRM && return
+    $DRYRUN && return
+    echo ""
+    printf "  Type AGREE to continue or Ctrl+C to abort: "
+    read -r _CONFIRM_REPLY
+    [[ "$_CONFIRM_REPLY" == "AGREE" ]] || { echo "Aborted."; exit 0; }
+}
+
+require_confirm
 
 if [[ ! -f /root/.ssh/authorized_keys ]] || [[ ! -s /root/.ssh/authorized_keys ]]; then
     echo "ERROR: No SSH authorized_keys found for root." >&2

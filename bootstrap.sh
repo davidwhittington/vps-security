@@ -17,6 +17,7 @@ Options:
                         baseline    — core hardening only; works on any Ubuntu/Debian server
                         web-server  — core + Apache, PHP, MySQL, certbot hardening
   --dry-run           Preview every change without applying anything
+  --confirm           Skip the interactive confirmation prompt
   --help, -h          Show this help
 
 Profiles are defined in profiles/*.conf — plain text lists of scripts to run in order.
@@ -32,11 +33,13 @@ EOF
 
 # --- Args ---
 DRYRUN=false
+CONFIRM=false
 PROFILE="web-server"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --dry-run)  DRYRUN=true ;;
+        --confirm)  CONFIRM=true ;;
         --profile)  PROFILE="${2:-web-server}"; shift ;;
         --help|-h)  usage; exit 0 ;;
         *)          echo "ERROR: Unknown argument: $1" >&2; usage >&2; exit 1 ;;
@@ -102,6 +105,17 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+require_confirm() {
+    $CONFIRM && return
+    $DRYRUN && return
+    echo ""
+    printf "  Type AGREE to continue or Ctrl+C to abort: "
+    read -r _CONFIRM_REPLY
+    [[ "$_CONFIRM_REPLY" == "AGREE" ]] || { echo "Aborted."; exit 0; }
+}
+
+require_confirm
+
 mkdir -p "$LOG_DIR"
 
 # --- Load profile manifest ---
@@ -133,6 +147,7 @@ run_script() {
 
     local args=()
     $DRYRUN && args+=("--dry-run")
+    $CONFIRM && args+=("--confirm")
 
     if bash "${SCRIPT_DIR}/${script}" "${args[@]}" 2>&1 | tee "$script_log"; then
         echo "  [OK] $name"

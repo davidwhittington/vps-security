@@ -22,6 +22,8 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # --- Arg parsing ---
+DRYRUN=false
+CONFIRM=false
 TARGET_USER="root"
 NEW_KEY=""
 REMOVE_LINE=""
@@ -33,9 +35,34 @@ while [[ $# -gt 0 ]]; do
         --add-key)     NEW_KEY="$2"; shift 2 ;;
         --remove-line) REMOVE_LINE="$2"; shift 2 ;;
         --show)        SHOW_ONLY=true; shift ;;
+        --dry-run)     DRYRUN=true; shift ;;
+        --confirm)     CONFIRM=true; shift ;;
+        --help|-h)
+            echo "ssh-key-rotate.sh — rotate SSH authorized_keys for the admin user"
+            echo
+            echo "Usage:"
+            echo "  bash scripts/core/hardening/ssh-key-rotate.sh [--dry-run] [--confirm]"
+            echo
+            echo "Flags:"
+            echo "  --dry-run   Preview all changes without applying anything"
+            echo "  --confirm   Skip the interactive confirmation prompt"
+            echo "  --help      Show this help and exit"
+            exit 0
+            ;;
         *)             echo "Unknown argument: $1" >&2; exit 1 ;;
     esac
 done
+
+require_confirm() {
+    $CONFIRM && return
+    $DRYRUN && return
+    echo ""
+    printf "  Type AGREE to continue or Ctrl+C to abort: "
+    read -r _CONFIRM_REPLY
+    [[ "$_CONFIRM_REPLY" == "AGREE" ]] || { echo "Aborted."; exit 0; }
+}
+
+require_confirm
 
 # Determine home directory and authorized_keys path
 if [[ "$TARGET_USER" == "root" ]]; then

@@ -10,7 +10,23 @@ set -euo pipefail
 
 # --- Dry-run support ---
 DRYRUN=false
-for arg in "$@"; do [[ "$arg" == "--dry-run" ]] && DRYRUN=true; done
+CONFIRM=false
+for arg in "$@"; do
+    [[ "$arg" == "--dry-run" ]] && DRYRUN=true
+    [[ "$arg" == "--confirm" ]] && CONFIRM=true
+    if [[ "$arg" == "--help" || "$arg" == "-h" ]]; then
+        echo "03-cert-monitor-setup.sh — weekly TLS certificate expiry monitor with email alerts"
+        echo
+        echo "Usage:"
+        echo "  bash scripts/web/hardening/03-cert-monitor-setup.sh [--dry-run] [--confirm]"
+        echo
+        echo "Flags:"
+        echo "  --dry-run   Preview all changes without applying anything"
+        echo "  --confirm   Skip the interactive confirmation prompt"
+        echo "  --help      Show this help and exit"
+        exit 0
+    fi
+done
 
 cmd() {
     if $DRYRUN; then echo "  [dry-run] $*"; return 0; fi
@@ -73,6 +89,17 @@ if [[ $EUID -ne 0 ]]; then
     echo "ERROR: This script must be run as root." >&2
     exit 1
 fi
+
+require_confirm() {
+    $CONFIRM && return
+    $DRYRUN && return
+    echo ""
+    printf "  Type AGREE to continue or Ctrl+C to abort: "
+    read -r _CONFIRM_REPLY
+    [[ "$_CONFIRM_REPLY" == "AGREE" ]] || { echo "Aborted."; exit 0; }
+}
+
+require_confirm
 
 _CERTBOT_CMD=$(command -v certbot 2>/dev/null)
 [[ -z "$_CERTBOT_CMD" && -x /snap/bin/certbot ]] && _CERTBOT_CMD=/snap/bin/certbot
