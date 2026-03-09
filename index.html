@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>vps-security — Ubuntu VPS Hardening Toolkit</title>
-  <meta name="description" content="Battle-tested bash scripts for hardening Ubuntu VPS servers. UFW, SSH, fail2ban, Apache, monitoring, cert alerts, and malware defense — one config file, one command.">
+  <title>linux-security — Linux Server Hardening Toolkit</title>
+  <meta name="description" content="Open-source bash scripts for hardening Ubuntu and Debian servers. Two profiles: baseline (any server) and web-server (Apache addendum). UFW, SSH, fail2ban, AIDE, auditd, ClamAV, ModSecurity — one config file, one command.">
   <style>
     :root {
       --bg:       #0d1117;
@@ -275,22 +275,23 @@
 
 <!-- ── Nav ──────────────────────────────────────────────── -->
 <nav>
-  <span class="nav-brand">vps-security</span>
+  <span class="nav-brand">linux-security</span>
   <div class="nav-links">
-    <a href="https://github.com/davidwhittington/vps-security">GitHub</a>
-    <a href="https://github.com/davidwhittington/vps-security/tree/main/docs">Docs</a>
-    <a href="https://github.com/davidwhittington/vps-security/blob/main/CHANGELOG.md">Changelog</a>
+    <a href="https://github.com/davidwhittington/linux-security">GitHub</a>
+    <a href="https://github.com/davidwhittington/linux-security/tree/main/docs">Docs</a>
+    <a href="https://github.com/davidwhittington/linux-security/blob/main/CHANGELOG.md">Changelog</a>
   </div>
 </nav>
 
 <!-- ── Hero ─────────────────────────────────────────────── -->
 <div class="hero">
-  <div class="hero-badge">Ubuntu VPS Security Tooling</div>
+  <div class="hero-badge">Linux Server Security Tooling</div>
   <h1>Harden your server.<br><span>In minutes, not hours.</span></h1>
   <p class="hero-sub">
-    vps-security is an open-source toolkit of bash scripts for hardening Ubuntu VPS servers.
-    One config file, one command &mdash; firewall, SSH, fail2ban, Apache, monitoring, cert alerts,
-    and malware defense all configured and verified.
+    linux-security is an open-source toolkit of bash scripts for hardening Ubuntu and Debian servers.
+    Two profiles: <code style="font-family:monospace;color:var(--green)">baseline</code> (any server) and
+    <code style="font-family:monospace;color:var(--green)">web-server</code> (Apache addendum).
+    One config file, one command &mdash; from bare server to verified security baseline.
   </p>
 
   <div class="warning-banner">
@@ -306,13 +307,13 @@
 
   <div class="install-block">
     <div class="install-label">Get started</div>
-    <pre>git clone https://github.com/davidwhittington/vps-security.git
-cd vps-security
+    <pre>git clone https://github.com/davidwhittington/linux-security.git
+cd linux-security
 cp config.env.example config.env
-bash bootstrap.sh</pre>
+bash bootstrap.sh --profile baseline</pre>
     <div class="install-note">
       Every script supports <code style="font-family:monospace;color:var(--green)">--dry-run</code> &mdash; preview all changes before applying.<br>
-      Ubuntu 24.04 LTS &middot; Debian 12 compatible &middot; Run as root
+      Ubuntu 22.04/24.04 LTS &middot; Debian 12 &middot; Run as root
     </div>
   </div>
 </div>
@@ -378,100 +379,118 @@ bash bootstrap.sh</pre>
 <!-- ── Scripts ───────────────────────────────────────────── -->
 <section>
   <h2>Scripts</h2>
-  <p>Twenty-one scripts split between hardening and auditing. All support <code style="font-family:monospace;color:var(--green)">--dry-run</code>.</p>
+  <p>Scripts are split into two layers. All support <code style="font-family:monospace;color:var(--green)">--dry-run</code>.</p>
 
   <div class="script-group">
-    <div class="script-group-label">scripts/hardening/</div>
+    <div class="script-group-label">scripts/core/hardening/ — baseline profile (any server)</div>
     <div class="cmd-list">
       <div class="cmd-row">
         <span class="cmd-name">01-immediate-hardening.sh</span>
-        <span class="cmd-desc">UFW firewall, fail2ban (SSH + Apache jails), SSH hardening, sysctl kernel params</span>
+        <span class="cmd-desc">UFW firewall, fail2ban SSH jail, SSH hardening, sysctl kernel params</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">02-apache-hardening.sh</span>
-        <span class="cmd-desc">Security headers, ServerTokens Prod, disable TRACE and mod_status, block .git access</span>
-      </div>
-      <div class="cmd-row">
-        <span class="cmd-name">03-setup-admin-user.sh</span>
+        <span class="cmd-name">02-setup-admin-user.sh</span>
         <span class="cmd-desc">Promote existing user to sudo, propagate SSH keys from root</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">04-monthly-updates-setup.sh</span>
-        <span class="cmd-desc">msmtp relay configuration, monthly apt upgrade report and cron job</span>
+        <span class="cmd-name">03-monthly-updates-setup.sh</span>
+        <span class="cmd-desc">msmtp relay, monthly apt upgrade report and cron job</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">05-log-monitoring-setup.sh</span>
-        <span class="cmd-desc">Logwatch daily digest, GoAccess traffic report, logrotate for toolkit logs</span>
+        <span class="cmd-name">04-rkhunter-setup.sh</span>
+        <span class="cmd-desc">Rootkit scanner with clean-system property baseline</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">06-cert-monitor-setup.sh</span>
-        <span class="cmd-desc">Weekly TLS certificate expiry alerts &mdash; fires at 30 days (configurable)</span>
-      </div>
-      <div class="cmd-row">
-        <span class="cmd-name">07-rkhunter-setup.sh</span>
-        <span class="cmd-desc">Rootkit scanner installed with clean-system property baseline</span>
-      </div>
-      <div class="cmd-row">
-        <span class="cmd-name">08-auditd-setup.sh</span>
+        <span class="cmd-name">05-auditd-setup.sh</span>
         <span class="cmd-desc">CIS Benchmark-aligned kernel audit ruleset via auditd</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">09-clamav-setup.sh</span>
-        <span class="cmd-desc">ClamAV weekly /var/www scan with quarantine and email alert on detection</span>
+        <span class="cmd-name">06-fail2ban-recidive.sh</span>
+        <span class="cmd-desc">Recidive jail: 1-week ban after 5 bans in 12h; SSH login email alerts</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">10-modsecurity-setup.sh</span>
-        <span class="cmd-desc">ModSecurity + OWASP CRS in DetectionOnly mode by default</span>
+        <span class="cmd-name">07-aide-setup.sh</span>
+        <span class="cmd-desc">AIDE file integrity monitoring on critical system paths; weekly scan with email alert</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">11-vhost-hardener.sh</span>
-        <span class="cmd-desc">Options -Indexes, AllowOverride None, deny dotfiles and env files across all web roots</span>
-      </div>
-      <div class="cmd-row">
-        <span class="cmd-name">rollback.sh</span>
-        <span class="cmd-desc">Restore .bak config backups from scripts 01, 02, 04, and 05 &mdash; per-script or all at once</span>
+        <span class="cmd-name">08-disk-alert-setup.sh</span>
+        <span class="cmd-desc">Daily disk and inode usage check; emails on threshold breach (default 80%)</span>
       </div>
     </div>
   </div>
 
   <div class="script-group" style="margin-top:1.5rem">
-    <div class="script-group-label">scripts/audit/</div>
+    <div class="script-group-label">scripts/web/hardening/ — web-server profile addendum (Apache)</div>
     <div class="cmd-list">
       <div class="cmd-row">
-        <span class="cmd-name">audit.sh</span>
-        <span class="cmd-desc">Full posture baseline &mdash; color-coded PASS/WARN/FAIL across all categories; <code style="font-family:monospace;color:var(--accent)">--json</code> flag available</span>
+        <span class="cmd-name">01-apache-hardening.sh</span>
+        <span class="cmd-desc">Security headers, ServerTokens Prod, disable TRACE and mod_status, block .git access</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">verify.sh</span>
-        <span class="cmd-desc">Post-run artifact checker &mdash; confirms every hardening script's changes took effect</span>
+        <span class="cmd-name">02-log-monitoring-setup.sh</span>
+        <span class="cmd-desc">Logwatch daily digest, GoAccess traffic report (password-protected)</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">ports-check.sh</span>
-        <span class="cmd-desc">Unexpected listening port detector compared against a configurable allowlist</span>
+        <span class="cmd-name">03-cert-monitor-setup.sh</span>
+        <span class="cmd-desc">Weekly TLS certificate expiry alerts &mdash; configurable threshold (default 30 days)</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">ssh-audit.sh</span>
-        <span class="cmd-desc">sshd configuration checker &mdash; flags weak ciphers, MACs, and KexAlgorithms</span>
+        <span class="cmd-name">04-clamav-setup.sh</span>
+        <span class="cmd-desc">ClamAV weekly web-root scan with quarantine and email alert on detection</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">headers-check.sh</span>
-        <span class="cmd-desc">Security header validator &mdash; auto-detects domains from active vhosts and checks each one</span>
+        <span class="cmd-name">05-modsecurity-setup.sh</span>
+        <span class="cmd-desc">ModSecurity + OWASP CRS in DetectionOnly mode by default</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">unattended-upgrades-check.sh</span>
-        <span class="cmd-desc">Auto-update status, last-run recency, held packages, and config file presence</span>
+        <span class="cmd-name">06-vhost-hardener.sh</span>
+        <span class="cmd-desc">Options -Indexes, AllowOverride None, deny dotfiles and env files across all web roots</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">apparmor-check.sh</span>
-        <span class="cmd-desc">AppArmor kernel module status and enforce vs. complain profile counts</span>
+        <span class="cmd-name">07-apache-tls-hardening.sh</span>
+        <span class="cmd-desc">TLS 1.2+ only, ECDHE/DHE ciphers, OCSP stapling, no session tickets</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">web-roots-writable.sh</span>
-        <span class="cmd-desc">World-writable file and directory scanner under /var/www</span>
+        <span class="cmd-name">08-apache-dos-mitigation.sh</span>
+        <span class="cmd-desc">mod_reqtimeout (Slowloris) + mod_evasive (HTTP flood) with tuned defaults</span>
       </div>
       <div class="cmd-row">
-        <span class="cmd-name">suid-check.sh</span>
+        <span class="cmd-name">09-php-hardening.sh</span>
+        <span class="cmd-desc">PHP security baseline: expose_php=Off, disable dangerous functions, secure session cookies</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">10-mysql-hardening.sh</span>
+        <span class="cmd-desc">Remove anonymous users, restrict remote root, bind 127.0.0.1, local-infile=0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="script-group" style="margin-top:1.5rem">
+    <div class="script-group-label">scripts/audit/ — profile-aware dispatcher + standalone checks</div>
+    <div class="cmd-list">
+      <div class="cmd-row">
+        <span class="cmd-name">audit.sh --profile baseline</span>
+        <span class="cmd-desc">Firewall, SSH, fail2ban, system updates — color-coded PASS/WARN/FAIL; <code style="font-family:monospace;color:var(--accent)">--json</code> and <code style="font-family:monospace;color:var(--accent)">--report html</code> available</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">audit.sh --profile web-server</span>
+        <span class="cmd-desc">Full posture audit including Apache headers, TLS certificate expiry (default)</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">core/audit/ssh-audit.sh</span>
+        <span class="cmd-desc">sshd configuration — flags weak ciphers, MACs, KexAlgorithms</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">core/audit/suid-check.sh</span>
         <span class="cmd-desc">SUID/SGID binary baseline and filesystem drift detection</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">web/audit/headers-check.sh</span>
+        <span class="cmd-desc">Security header validator across all active Apache vhosts</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">web/audit/web-root-perms.sh</span>
+        <span class="cmd-desc">Web root permission scanner — world-writable, unexpected ownership, webshell patterns</span>
       </div>
     </div>
   </div>
@@ -480,26 +499,26 @@ bash bootstrap.sh</pre>
 <!-- ── Quick Start ───────────────────────────────────────── -->
 <section>
   <h2>Quick start</h2>
-  <p>From a fresh Ubuntu 24.04 VPS to a hardened baseline in under ten minutes.</p>
+  <p>From a fresh Ubuntu 24.04 or Debian 12 server to a verified security baseline.</p>
   <div class="code-block"><pre><span class="comment"># 1. Clone the repo on your local machine</span>
-<span class="cmd">git clone</span> https://github.com/davidwhittington/vps-security.git
-<span class="cmd">cd</span> vps-security
+<span class="cmd">git clone</span> https://github.com/davidwhittington/linux-security.git
+<span class="cmd">cd</span> linux-security
 
 <span class="comment"># 2. Fill in your config &mdash; email, SSH port, SMTP relay</span>
-<span class="cmd">cp</span> config.env.example config.env
+<span class="cmd">cp</span> config.env config.env.local   <span class="comment"># or edit config.env directly</span>
 <span class="cmd">nano</span> config.env
 
-<span class="comment"># 3. Copy config to the server and run bootstrap</span>
-<span class="cmd">scp</span> config.env root@YOUR_SERVER:/etc/vps-security/config.env
-<span class="cmd">ssh</span> root@YOUR_SERVER <span class="flag">"CONFIG_FILE=/etc/vps-security/config.env bash -s"</span> &lt; bootstrap.sh
+<span class="comment"># 3. Run bootstrap (baseline = any server; web-server = +Apache/PHP/MySQL)</span>
+<span class="cmd">bash</span> bootstrap.sh <span class="flag">--profile baseline --dry-run</span>   <span class="comment"># preview first</span>
+<span class="cmd">bash</span> bootstrap.sh <span class="flag">--profile baseline</span>              <span class="comment"># apply</span>
 
 <span class="comment"># 4. Verify everything took effect</span>
-<span class="cmd">bash</span> scripts/audit/verify.sh
+<span class="cmd">bash</span> scripts/core/audit/verify.sh
 
 <span class="comment"># 5. Run the full posture audit</span>
-<span class="cmd">bash</span> scripts/audit/audit.sh</pre>
+<span class="cmd">bash</span> scripts/audit/audit.sh <span class="flag">--profile baseline</span></pre>
   </div>
-  <p>Not ready to commit? Pass <code style="font-family:monospace;color:var(--green)">--dry-run</code> to bootstrap.sh to print every change that would be made without touching the system.</p>
+  <p>Pass <code style="font-family:monospace;color:var(--green)">--dry-run</code> to bootstrap.sh to print every change that would be made without touching the system.</p>
 </section>
 
 <!-- ── Docs ──────────────────────────────────────────────── -->
@@ -507,23 +526,23 @@ bash bootstrap.sh</pre>
   <h2>Docs</h2>
   <p>Reference documentation for configuration, operations, and architecture.</p>
   <div class="guides-list">
-    <a href="https://github.com/davidwhittington/vps-security/blob/main/docs/customization.md" class="guide-card">
+    <a href="https://github.com/davidwhittington/linux-security/blob/main/docs/customization.md" class="guide-card">
       <h3>Customization Guide</h3>
       <p>Every config.env variable explained. SMTP provider table, CSP examples, per-server config.env.local override pattern.</p>
     </a>
-    <a href="https://github.com/davidwhittington/vps-security/blob/main/docs/RUNBOOK.md" class="guide-card">
+    <a href="https://github.com/davidwhittington/linux-security/blob/main/docs/RUNBOOK.md" class="guide-card">
       <h3>Runbook</h3>
       <p>Operational playbook &mdash; cert renewal, SSH key rotation, fail2ban unbanning, disk alerts, rollback, and adding domains.</p>
     </a>
-    <a href="https://github.com/davidwhittington/vps-security/blob/main/docs/architecture.md" class="guide-card">
+    <a href="https://github.com/davidwhittington/linux-security/blob/main/docs/architecture.md" class="guide-card">
       <h3>Architecture</h3>
       <p>Config discovery chain, script execution order, bootstrap orchestration, audit exit codes, and the public/private submodule split.</p>
     </a>
-    <a href="https://github.com/davidwhittington/vps-security/blob/main/docs/security/README.md" class="guide-card">
+    <a href="https://github.com/davidwhittington/linux-security/blob/main/docs/security/README.md" class="guide-card">
       <h3>Security Baseline</h3>
       <p>Minimum security requirements, fail2ban config blocks, verification commands, and recommended audit cadence.</p>
     </a>
-    <a href="https://github.com/davidwhittington/vps-security/blob/main/CHANGELOG.md" class="guide-card">
+    <a href="https://github.com/davidwhittington/linux-security/blob/main/CHANGELOG.md" class="guide-card">
       <h3>Changelog</h3>
       <p>Full version history following Keep a Changelog v1.0.0. Every script addition, change, and fix documented.</p>
     </a>
@@ -535,19 +554,21 @@ bash bootstrap.sh</pre>
   <h2>Private data, public tools</h2>
   <p>
     Audit reports, server inventories, and per-server config files contain real IPs and hostnames
-    that shouldn't live in a public repo. vps-security uses a git submodule pattern to keep the
+    that shouldn't live in a public repo. linux-security uses a git submodule pattern to keep the
     tooling public and the server data private:
   </p>
   <div class="code-block"><pre><span class="comment"># Public repo &mdash; hardening scripts, audit tools, docs</span>
-vps-security/
-  scripts/hardening/
-  scripts/audit/
-  docs/
+linux-security/
+  scripts/core/hardening/
+  scripts/web/hardening/
+  scripts/core/audit/
+  scripts/web/audit/
+  profiles/
   bootstrap.sh
-  config.env.example
+  config.env
 
 <span class="comment"># Private submodule &mdash; your own private repo</span>
-vps-security/private/
+linux-security/private/
   servers/server1.example.com/
     config.env.local
     AUDIT_REPORT.md
@@ -562,10 +583,10 @@ vps-security/private/
 <!-- ── Footer ───────────────────────────────────────────── -->
 <footer>
   <p>
-    <a href="https://github.com/davidwhittington/vps-security">vps-security</a> &middot;
+    <a href="https://github.com/davidwhittington/linux-security">vps-security</a> &middot;
     MIT License &middot;
-    <a href="https://github.com/davidwhittington/vps-security/blob/main/CHANGELOG.md">Changelog</a> &middot;
-    <a href="https://github.com/davidwhittington/vps-security/issues">Issues</a>
+    <a href="https://github.com/davidwhittington/linux-security/blob/main/CHANGELOG.md">Changelog</a> &middot;
+    <a href="https://github.com/davidwhittington/linux-security/issues">Issues</a>
   </p>
 </footer>
 
