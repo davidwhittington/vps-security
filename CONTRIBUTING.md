@@ -44,7 +44,7 @@ if [[ -z "$CONFIG_FILE" ]]; then
     for loc in \
         "$SCRIPT_DIR/../../config.env" \
         "$SCRIPT_DIR/../config.env" \
-        /etc/vps-security/config.env; do
+        /etc/linux-security/config.env; do
         if [[ -f "$loc" ]]; then CONFIG_FILE="$loc"; break; fi
     done
 fi
@@ -113,7 +113,7 @@ cp /etc/some/config /etc/some/config.bak
 4. Add `--dry-run` support throughout
 5. Add a CHANGELOG entry under `[Unreleased]`
 6. Update the script inventory in `README.md` and `index.html` (gh-pages branch)
-7. Add a corresponding verify step in `scripts/audit/verify.sh`
+7. Add a corresponding verify step in `scripts/core/audit/verify.sh`
 
 ### Audit script
 

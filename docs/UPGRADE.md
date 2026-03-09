@@ -1,6 +1,6 @@
 # Upgrade Guide
 
-How to apply updated vps-security scripts to an already-hardened server.
+How to apply updated linux-security scripts to an already-hardened server.
 
 ---
 
@@ -8,14 +8,14 @@ How to apply updated vps-security scripts to an already-hardened server.
 
 | Item | Detail |
 |---|---|
-| Applies to | Servers previously provisioned with vps-security |
+| Applies to | Servers previously provisioned with linux-security |
 | Last updated | 2026-03-09 |
 
 ---
 
 ## Overview
 
-vps-security scripts are idempotent — safe to re-run on a server that already has them applied. The general process is:
+linux-security scripts are idempotent — safe to re-run on a server that already has them applied. The general process is:
 
 1. Pull the latest version
 2. Review the CHANGELOG for breaking changes
@@ -29,7 +29,7 @@ vps-security scripts are idempotent — safe to re-run on a server that already 
 ### 1. Pull latest changes
 
 ```bash
-cd vps-security
+cd linux-security
 git pull origin main
 ```
 
@@ -57,14 +57,14 @@ Copy any new variables you need into your live config.
 Always dry-run before applying to a live server:
 
 ```bash
-export CONFIG_FILE=/etc/vps-security/config.env
+export CONFIG_FILE=/etc/linux-security/config.env
 bash bootstrap.sh --dry-run
 ```
 
 Or for a specific script:
 
 ```bash
-bash scripts/hardening/01-immediate-hardening.sh --dry-run
+bash scripts/core/hardening/01-immediate-hardening.sh --dry-run
 ```
 
 ### 5. Apply changes
@@ -72,7 +72,7 @@ bash scripts/hardening/01-immediate-hardening.sh --dry-run
 **Option A — Re-run bootstrap (applies everything):**
 
 ```bash
-export CONFIG_FILE=/etc/vps-security/config.env
+export CONFIG_FILE=/etc/linux-security/config.env
 bash bootstrap.sh
 ```
 
@@ -81,9 +81,9 @@ bash bootstrap.sh
 If the CHANGELOG shows only scripts 05 and 06 changed:
 
 ```bash
-export CONFIG_FILE=/etc/vps-security/config.env
-bash scripts/hardening/05-log-monitoring-setup.sh
-bash scripts/hardening/06-cert-monitor-setup.sh
+export CONFIG_FILE=/etc/linux-security/config.env
+bash scripts/web/hardening/02-log-monitoring-setup.sh
+bash scripts/web/hardening/03-cert-monitor-setup.sh
 ```
 
 ### 6. Verify
@@ -91,7 +91,7 @@ bash scripts/hardening/06-cert-monitor-setup.sh
 After applying, run verify and audit to confirm everything is in order:
 
 ```bash
-bash scripts/audit/verify.sh
+bash scripts/core/audit/verify.sh
 bash scripts/audit/audit.sh
 ```
 
@@ -102,8 +102,8 @@ bash scripts/audit/audit.sh
 New scripts added to `scripts/hardening/` in a version upgrade are not run automatically by re-running `bootstrap.sh` if they are numbered higher than what was previously installed. Run them explicitly:
 
 ```bash
-bash scripts/hardening/12-apache-tls-hardening.sh
-bash scripts/hardening/13-apache-dos-mitigation.sh
+bash scripts/web/hardening/07-apache-tls-hardening.sh
+bash scripts/web/hardening/08-apache-dos-mitigation.sh
 ```
 
 Or re-run `bootstrap.sh` — it runs all scripts in order and is safe to run multiple times.
@@ -114,14 +114,14 @@ Or re-run `bootstrap.sh` — it runs all scripts in order and is safe to run mul
 
 If a script's behavior has changed in a way that requires updated config.env values:
 
-1. Add the new variable to `/etc/vps-security/config.env` on the target server
+1. Add the new variable to `/etc/linux-security/config.env` on the target server
 2. Re-run the affected script
 
 Example — adding `CERT_WARN_DAYS` in a new version:
 
 ```bash
-echo 'CERT_WARN_DAYS=21' >> /etc/vps-security/config.env
-bash scripts/hardening/06-cert-monitor-setup.sh
+echo 'CERT_WARN_DAYS=21' >> /etc/linux-security/config.env
+bash scripts/web/hardening/03-cert-monitor-setup.sh
 ```
 
 ---
@@ -132,10 +132,10 @@ If an upgrade causes problems, use `rollback.sh` to restore the previous config 
 
 ```bash
 # Rollback all scripts
-bash scripts/hardening/rollback.sh
+bash scripts/web/hardening/rollback.sh
 
 # Rollback a specific script
-bash scripts/hardening/rollback.sh --script 02
+bash scripts/web/hardening/rollback.sh --script 02
 ```
 
 Rollback only restores `.bak` config files. It does not downgrade packages or remove cron jobs added by the new version.

@@ -1,6 +1,6 @@
-# vps-security
+# linux-security
 
-A production-ready hardening toolkit for Ubuntu/Debian VPS servers running Apache. Five focused scripts address the most common critical vulnerabilities on freshly provisioned servers: firewall, SSH hardening, intrusion prevention, Apache security headers, automatic updates, and log monitoring.
+A layered hardening toolkit for Ubuntu/Debian servers. Two profiles: `baseline` (any server) and `web-server` (Apache/PHP/MySQL addendum). One config file, one command.
 
 Each script is idempotent, validates preconditions before making changes, supports `--dry-run`, and backs up any files it modifies.
 
@@ -20,15 +20,17 @@ The goal was a standardized, repeatable baseline: cookie-cutter deployments that
 
 | Component | Status |
 |---|---|
-| Hardening scripts (01–05) | Complete |
-| `config.env` central configuration | Complete |
-| `bootstrap.sh` single-command provisioner | Complete |
+| Core hardening scripts (01–08) | Complete |
+| Web hardening scripts (01–10) | Complete |
+| `config.env` / `config.web.env` configuration | Complete |
+| `bootstrap.sh` with `--profile` support | Complete |
 | `scripts/audit/audit.sh` baseline checker | Complete |
-| `scripts/audit/` extended audit tools | Planned (Phase 1) |
+| `scripts/core/audit/` extended audit tools | Complete |
+| `scripts/web/audit/` web audit tools | Complete |
 | Nginx support | Planned (Phase 2) |
 | Multi-server fleet tooling | Planned (Phase 2) |
 
-See the [open issues](https://github.com/davidwhittington/vps-security/issues) for the full phased roadmap.
+See the [open issues](https://github.com/davidwhittington/linux-security/issues) for the full phased roadmap.
 
 ---
 
@@ -38,21 +40,28 @@ See the [open issues](https://github.com/davidwhittington/vps-security/issues) f
 |---|---|
 | **Firewall** | UFW — deny all inbound, allow SSH / 80 / 443 |
 | **SSH** | Key-only auth, no root password login, no X11 forwarding |
-| **Intrusion Prevention** | fail2ban with SSH + Apache jails, 3 strikes / 1 hour ban |
+| **Intrusion Prevention** | fail2ban with SSH + Apache jails, 3 strikes / 1 hour ban; recidive jail for repeat offenders |
 | **Kernel Network** | ICMP redirect blocking, martian packet logging |
-| **Apache** | `ServerTokens Prod`, `ServerSignature Off`, security headers, HSTS, CSP, block `.git`/`.svn`, disable `mod_status` |
+| **Rootkit Detection** | rkhunter with scheduled scans |
+| **Syscall Auditing** | auditd with baseline ruleset |
+| **Filesystem Integrity** | AIDE — baseline snapshot + scheduled diff |
+| **Apache** | `ServerTokens Prod`, `ServerSignature Off`, security headers, HSTS, CSP, block `.git`/`.svn`, disable `mod_status` (web-server profile) |
+| **TLS** | Modern cipher suite, HSTS preload, cert expiry monitoring (web-server profile) |
 | **Admin User** | Non-root sudo user with SSH key access |
 | **Automatic Updates** | `unattended-upgrades` + monthly full upgrade with email report |
-| **Log Monitoring** | Logwatch daily digest + GoAccess traffic reports (password-protected) |
+| **Log Monitoring** | Logwatch daily digest + GoAccess traffic reports, password-protected (web-server profile) |
+| **Malware Scanning** | ClamAV with scheduled scans (web-server profile) |
+| **WAF** | ModSecurity with OWASP Core Rule Set (web-server profile) |
 
 ---
 
 ## Prerequisites
 
 - Ubuntu 22.04+ or Debian 12+
-- Apache 2.4 installed and running
 - Root access
-- **SSH public key already in `/root/.ssh/authorized_keys`** before running script 01 — it disables password authentication and aborts if no key is present
+- **SSH public key already in `/root/.ssh/authorized_keys`** before running — script `core/01` disables password authentication and aborts if no key is present
+
+For the **web-server profile**, Apache 2.4 must be installed and running. PHP and MySQL/MariaDB hardening scripts are optional and will skip cleanly if those services are not present.
 
 ---
 
@@ -61,12 +70,16 @@ See the [open issues](https://github.com/davidwhittington/vps-security/issues) f
 **1. Clone and configure**
 
 ```bash
-git clone https://github.com/davidwhittington/vps-security.git
-cd vps-security
+git clone https://github.com/davidwhittington/linux-security.git
+cd linux-security
 cp config.env config.env.local   # or edit config.env directly
 ```
 
-Edit `config.env` and set your values: admin username, email address, SMTP relay, SSH port, and CSP domains. See [docs/customization.md](docs/customization.md) for details on each variable.
+Edit `config.env` and set your values: admin username, email address, SMTP relay, and SSH port.
+
+For the web-server profile, also fill in `config.web.env` (CSP domains, cert warn threshold, web roots path).
+
+See [docs/customization.md](docs/customization.md) for details on every variable.
 
 **2. Run**
 
@@ -74,39 +87,50 @@ Option A — single command (recommended):
 
 ```bash
 # As root on the target server
-bash bootstrap.sh            # full run
-bash bootstrap.sh --dry-run  # preview all changes first
+bash bootstrap.sh --profile baseline     # core controls only (any server)
+bash bootstrap.sh --profile web-server   # core + Apache/PHP/MySQL hardening
+bash bootstrap.sh --dry-run              # preview all changes first
+bash bootstrap.sh --profile baseline --dry-run
 ```
 
 Option B — run scripts individually in order:
 
 ```bash
-chmod +x scripts/hardening/*.sh
+# Core layer
+bash scripts/core/hardening/01-immediate-hardening.sh   # Firewall · SSH · fail2ban · sysctl
+bash scripts/core/hardening/02-setup-admin-user.sh      # Non-root admin with sudo + SSH keys
+bash scripts/core/hardening/03-monthly-updates-setup.sh # Scheduled apt upgrades + email report
 
-bash scripts/hardening/01-immediate-hardening.sh   # Firewall · SSH · fail2ban · sysctl
-bash scripts/hardening/02-apache-hardening.sh      # Apache headers · TLS · mod_status
-bash scripts/hardening/03-setup-admin-user.sh      # Non-root admin with sudo + SSH keys
-bash scripts/hardening/04-monthly-updates-setup.sh # Scheduled apt upgrades + email report
-bash scripts/hardening/05-log-monitoring-setup.sh  # Logwatch + GoAccess traffic reports
+# Web layer (web-server profile only)
+bash scripts/web/hardening/01-apache-hardening.sh       # Apache headers · TLS · mod_status
+bash scripts/web/hardening/02-log-monitoring-setup.sh   # Logwatch + GoAccess traffic reports
+bash scripts/web/hardening/03-cert-monitor-setup.sh     # Cert expiry monitoring
 ```
 
 **3. Verify**
 
 ```bash
-bash scripts/audit/audit.sh
+bash scripts/audit/audit.sh                      # web-server checks (default)
+bash scripts/audit/audit.sh --profile baseline   # core checks only
 ```
 
-> **After running script 01:** Open a second terminal and verify SSH access before closing your current session. Password authentication will be disabled.
+> **After running `core/01`:** Open a second terminal and verify SSH access before closing your current session. Password authentication will be disabled.
 
 ---
 
 ## Scripts
 
-### `01-immediate-hardening.sh` — Critical Fixes
+### Core Layer
 
-Addresses the highest-risk issues found on most freshly provisioned VPS instances.
+Available in both profiles. No Apache or web-server dependency.
 
-- Installs and configures **fail2ban** with SSH jail (3 strikes, 1h ban) and Apache jails (`apache-auth`, `apache-badbots`, `apache-noscript`)
+---
+
+#### `core/01-immediate-hardening.sh` — Critical Fixes
+
+Addresses the highest-risk issues found on most freshly provisioned servers.
+
+- Installs and configures **fail2ban** with SSH jail (3 strikes, 1h ban) and Apache jails
 - Enables **UFW** with deny-all inbound policy; opens SSH port, 80, 443
 - Disables **SSH password authentication** and root password login
 - Disables **X11 forwarding**
@@ -116,79 +140,132 @@ Safe to re-run. Aborts if no SSH authorized key is found.
 
 ---
 
-### `02-apache-hardening.sh` — Apache Security
-
-Reduces information disclosure and adds browser security headers.
-
-- Enables `mod_headers`
-- Sets `ServerTokens Prod` and `ServerSignature Off` (hides version strings)
-- Disables TRACE method
-- Blocks access to `.git` and `.svn` directories
-- Adds security headers: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security` (HSTS), `Content-Security-Policy`
-- Disables `mod_status`
-- Backs up existing `security.conf` before overwriting; restores on failure
-
-CSP `frame-ancestors` is set from `$CSP_FRAME_ANCESTORS` in `config.env`.
-
----
-
-### `03-setup-admin-user.sh` — Admin User
+#### `core/02-setup-admin-user.sh` — Admin User
 
 Promotes an existing user to sudo admin and removes the cloud-init NOPASSWD sudoers rule.
 
 - Sets login shell to `/bin/bash`
 - Adds user to `sudo` group
 - Copies root's `authorized_keys` so SSH access works immediately
-- Removes `/etc/sudoers.d/90-cloud-init-users` (overly permissive cloud-init rule)
+- Removes `/etc/sudoers.d/90-cloud-init-users`
 
-Admin username is set from `$ADMIN_USER` in `config.env`. The user must exist on the server before running.
+Admin username is set from `$ADMIN_USER` in `config.env`. The user must exist before running.
 
 After verifying SSH access and `sudo -v` work, set `PermitRootLogin no` in `/etc/ssh/sshd_config`.
 
 ---
 
-### `04-monthly-updates-setup.sh` — Scheduled Updates
+#### `core/03-monthly-updates-setup.sh` — Scheduled Updates
 
 Sets up a monthly full system update with an emailed report.
 
 - Installs and configures `msmtp` with your SMTP relay settings
 - Creates `/usr/local/sbin/monthly-apt-report.sh` — runs `apt upgrade`, checks kernel version, disk usage, uptime, fail2ban status, and cert expiry
 - Schedules a cron job at 3:00 AM on the 1st of each month
-- Emails the full report on completion
 
-Email address and SMTP settings read from `config.env`. Test delivery with `/usr/local/sbin/monthly-apt-report.sh`.
+Email address and SMTP settings read from `config.env`.
 
 ---
 
-### `05-log-monitoring-setup.sh` — Log Monitoring
+#### `core/04–08` — Defense in Depth
+
+Additional hardening applied after the baseline is established:
+
+| Script | Installs / Configures |
+|---|---|
+| `04-rkhunter-setup.sh` | rkhunter rootkit scanner with scheduled scans and email alerts |
+| `05-auditd-setup.sh` | auditd syscall auditing with a baseline ruleset |
+| `06-fail2ban-recidive.sh` | fail2ban recidive jail — escalating bans for repeat offenders |
+| `07-aide-setup.sh` | AIDE filesystem integrity baseline and nightly diff |
+| `08-disk-alert-setup.sh` | Disk usage cron — emails when any partition crosses threshold |
+
+---
+
+### Web Layer
+
+Applied only with `--profile web-server`. Requires Apache 2.4 running.
+
+---
+
+#### `web/01-apache-hardening.sh` — Apache Security
+
+Reduces information disclosure and adds browser security headers.
+
+- Enables `mod_headers`
+- Sets `ServerTokens Prod` and `ServerSignature Off`
+- Disables TRACE method
+- Blocks access to `.git` and `.svn` directories
+- Adds security headers: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS, CSP
+- Disables `mod_status`
+- Backs up existing `security.conf` before overwriting; restores on failure
+
+CSP `frame-ancestors` is set from `$CSP_FRAME_ANCESTORS` in `config.web.env`.
+
+---
+
+#### `web/02-log-monitoring-setup.sh` — Log Monitoring
 
 Installs daily log digest and traffic reporting.
 
 - Installs **Logwatch** — configures a daily HTML email digest of all services
 - Installs **GoAccess** — generates a daily HTML traffic report from Apache access logs
-- Password-protects the reports directory with HTTP Basic Auth (auto-generates a password, printed at the end)
+- Password-protects the reports directory with HTTP Basic Auth
 - Schedules GoAccess at 4:00 AM daily
 
-Email and from-address read from `config.env`. Reports are served from `/var/www/html/reports/`.
+Reports are served from `/var/www/html/reports/`.
+
+---
+
+#### `web/03-cert-monitor-setup.sh` — Certificate Monitoring
+
+Configures automated TLS cert expiry alerts.
+
+- Installs a daily cron that checks cert expiry via `certbot certificates`
+- Emails a warning when any cert is within `$CERT_WARN_DAYS` days of expiry (default: 30)
+
+---
+
+#### `web/04–10` — Extended Web Hardening
+
+| Script | Installs / Configures |
+|---|---|
+| `04-clamav-setup.sh` | ClamAV with scheduled scans of web roots |
+| `05-modsecurity-setup.sh` | ModSecurity WAF with OWASP Core Rule Set |
+| `06-vhost-hardener.sh` | Per-vhost security headers and directory restrictions |
+| `07-apache-tls-hardening.sh` | Modern cipher suite, HSTS preload, OCSP stapling |
+| `08-apache-dos-mitigation.sh` | mod_evasive and mod_reqtimeout tuning |
+| `09-php-hardening.sh` | PHP ini hardening (skips cleanly if PHP not installed) |
+| `10-mysql-hardening.sh` | MySQL/MariaDB secure defaults (skips cleanly if not installed) |
 
 ---
 
 ## Repository Structure
 
 ```
-vps-security/
-├── config.env                   # Configuration — fill this in before running anything
-├── bootstrap.sh                 # Single-command provisioner (runs all scripts in order)
+linux-security/
+├── config.env                   # Core configuration — fill in before running
+├── config.web.env               # Web-layer configuration — needed for web-server profile
+├── bootstrap.sh                 # Single-command provisioner
+├── profiles/
+│   ├── baseline.conf            # Core-only script list
+│   └── web-server.conf          # Core + web script list
 ├── docs/
 │   ├── security/
 │   │   └── README.md            # Security baseline, requirements, audit cadence
-│   ├── customization.md         # What to change in config.env and why
+│   ├── architecture.md          # How the toolkit fits together
+│   ├── customization.md         # config.env and config.web.env variables explained
 │   ├── TEMPLATE.md              # Blank audit report template
 │   └── VPS_HARDENING_GUIDE.html # Standalone HTML knowledge base (offline reference)
 ├── scripts/
-│   ├── hardening/               # The five hardening scripts (01–05, run in order)
+│   ├── core/
+│   │   ├── hardening/           # Core hardening scripts (01–08)
+│   │   └── audit/               # Core read-only checkers
+│   ├── web/
+│   │   ├── hardening/           # Web hardening scripts (01–10)
+│   │   └── audit/               # Web read-only checkers
 │   └── audit/
-│       └── audit.sh             # Baseline checker (read-only, pass/fail output)
+│       └── audit.sh             # Profile-aware baseline checker
+├── lib/                         # Shared shell libraries
 ├── logs/                        # Per-run bootstrap logs (gitignored)
 ├── config/                      # Config snippets and templates (planned)
 └── private/                     # Git submodule — server-specific data (not public)
@@ -201,7 +278,10 @@ vps-security/
 Run the built-in checker after hardening to verify every control is active:
 
 ```bash
-bash scripts/audit/audit.sh
+bash scripts/audit/audit.sh                      # web-server checks (default)
+bash scripts/audit/audit.sh --profile baseline   # core checks only
+bash scripts/audit/audit.sh --json               # machine-readable output
+bash scripts/audit/audit.sh --report html        # full HTML report
 ```
 
 For a full manual audit, use the template:
@@ -222,13 +302,13 @@ To adopt this pattern for your own infrastructure:
 
 ```bash
 # Fork or clone this repo
-gh repo fork davidwhittington/vps-security
+gh repo fork davidwhittington/linux-security
 
 # Create your own private companion repo
-gh repo create my-vps-private --private
+gh repo create my-linux-private --private
 
 # Add it as a submodule
-git submodule add https://github.com/<you>/my-vps-private private/
+git submodule add https://github.com/<you>/my-linux-private private/
 git commit -m "Add private submodule"
 ```
 
@@ -236,7 +316,8 @@ git commit -m "Add private submodule"
 
 ## Docs
 
-- [Customization Guide](docs/customization.md) — config.env variables explained
+- [Customization Guide](docs/customization.md) — config.env and config.web.env variables explained
+- [Architecture](docs/architecture.md) — how the toolkit fits together
 - [Security Baseline](docs/security/README.md) — requirements, headers, audit cadence
 - [Audit Report Template](docs/TEMPLATE.md) — blank template for documenting findings
 - [VPS Hardening Guide](docs/VPS_HARDENING_GUIDE.html) — standalone offline reference

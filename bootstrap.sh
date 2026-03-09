@@ -1,17 +1,30 @@
 #!/usr/bin/env bash
-# bootstrap.sh — vps-security full-stack provisioner
+# bootstrap.sh — linux-security provisioner
 #
-# Sources config.env, runs all hardening scripts in order, logs each run.
+# Sources config.env (and config.web.env for the web-server profile), runs all
+# hardening scripts listed in the selected profile, and logs each run.
 # Exits non-zero if any script fails.
 #
 # Usage:
-#   bash bootstrap.sh              # Full hardening run
-#   bash bootstrap.sh --dry-run    # Preview all changes, make none
+#   bash bootstrap.sh                          # web-server profile (full stack)
+#   bash bootstrap.sh --profile baseline       # core-only (any Ubuntu/Debian server)
+#   bash bootstrap.sh --profile web-server     # core + Apache/PHP/MySQL hardening
+#   bash bootstrap.sh --dry-run                # preview all changes, make none
+#   bash bootstrap.sh --profile baseline --dry-run
 set -euo pipefail
 
 # --- Args ---
 DRYRUN=false
-for arg in "$@"; do [[ "$arg" == "--dry-run" ]] && DRYRUN=true; done
+PROFILE="web-server"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --dry-run) DRYRUN=true ;;
+        --profile) PROFILE="${2:-web-server}"; shift ;;
+        *) ;;
+    esac
+    shift
+done
 
 # --- Paths ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,12 +32,20 @@ LOG_DIR="${SCRIPT_DIR}/logs"
 TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
 LOG_FILE="${LOG_DIR}/bootstrap-${TIMESTAMP}.log"
 
+# --- Validate profile ---
+PROFILE_FILE="${SCRIPT_DIR}/profiles/${PROFILE}.conf"
+if [[ ! -f "$PROFILE_FILE" ]]; then
+    echo "ERROR: Unknown profile '${PROFILE}'." >&2
+    echo "  Available profiles: $(ls "$SCRIPT_DIR/profiles/" | sed 's/\.conf$//' | tr '\n' ' ')" >&2
+    exit 1
+fi
+
 # --- Config discovery ---
 CONFIG_FILE="${CONFIG_FILE:-}"
 if [[ -z "$CONFIG_FILE" ]]; then
     for loc in \
         "$SCRIPT_DIR/config.env" \
-        /etc/vps-security/config.env; do
+        /etc/linux-security/config.env; do
         if [[ -f "$loc" ]]; then CONFIG_FILE="$loc"; break; fi
     done
 fi
@@ -40,6 +61,23 @@ else
     exit 1
 fi
 
+# --- Web config discovery (for web-server profile) ---
+if [[ "$PROFILE" == "web-server" ]]; then
+    WEB_CONFIG_FILE="${WEB_CONFIG_FILE:-}"
+    if [[ -z "$WEB_CONFIG_FILE" ]]; then
+        for loc in \
+            "$SCRIPT_DIR/config.web.env" \
+            /etc/linux-security/config.web.env; do
+            if [[ -f "$loc" ]]; then WEB_CONFIG_FILE="$loc"; break; fi
+        done
+    fi
+    if [[ -n "$WEB_CONFIG_FILE" ]]; then
+        export WEB_CONFIG_FILE
+        # shellcheck source=/dev/null
+        source "$WEB_CONFIG_FILE"
+    fi
+fi
+
 # --- Pre-flight ---
 if [[ $EUID -ne 0 ]]; then
     echo "ERROR: bootstrap.sh must be run as root." >&2
@@ -48,9 +86,13 @@ fi
 
 mkdir -p "$LOG_DIR"
 
+# --- Load profile manifest ---
+mapfile -t SCRIPTS < <(grep -v '^\s*#' "$PROFILE_FILE" | grep -v '^\s*$')
+
 # --- Banner ---
 echo "========================================="
-echo "  vps-security Bootstrap"
+echo "  linux-security Bootstrap"
+echo "  Profile: ${PROFILE}"
 echo "  Host: $(hostname -f)"
 echo "  Date: $(date '+%Y-%m-%d %H:%M %Z')"
 if $DRYRUN; then
@@ -59,14 +101,6 @@ fi
 echo "  Log:  $LOG_FILE"
 echo "========================================="
 echo ""
-
-SCRIPTS=(
-    "scripts/hardening/01-immediate-hardening.sh"
-    "scripts/hardening/02-apache-hardening.sh"
-    "scripts/hardening/03-setup-admin-user.sh"
-    "scripts/hardening/04-monthly-updates-setup.sh"
-    "scripts/hardening/05-log-monitoring-setup.sh"
-)
 
 PASS=0
 FAIL=0
@@ -77,7 +111,7 @@ run_script() {
     name=$(basename "$script")
     local script_log="${LOG_DIR}/${TIMESTAMP}-${name%.sh}.log"
 
-    echo "--- Running: $name ---"
+    echo "--- Running: ${script} ---"
 
     local args=()
     $DRYRUN && args+=("--dry-run")
@@ -93,7 +127,7 @@ run_script() {
     echo ""
 }
 
-# Run all scripts, stop on first failure
+# Run all scripts in profile order, stop on first failure
 for script in "${SCRIPTS[@]}"; do
     run_script "$script"
 done | tee "$LOG_FILE"
@@ -106,6 +140,7 @@ else
     echo "  Bootstrap complete!"
 fi
 echo ""
+echo "  Profile:       ${PROFILE}"
 echo "  Scripts run:   ${#SCRIPTS[@]}"
 echo "  Passed:        $PASS"
 echo "  Failed:        $FAIL"
@@ -114,9 +149,9 @@ if ! $DRYRUN && [[ "$FAIL" -eq 0 ]]; then
     echo ""
     echo "  Running post-run verification..."
     echo ""
-    bash "${SCRIPT_DIR}/scripts/audit/verify.sh" --brief 2>&1 | tee -a "$LOG_FILE" || true
+    bash "${SCRIPT_DIR}/scripts/core/audit/verify.sh" --brief 2>&1 | tee -a "$LOG_FILE" || true
     echo ""
-    echo "  Full audit: bash scripts/audit/audit.sh"
+    echo "  Full audit: bash scripts/audit/audit.sh --profile ${PROFILE}"
     echo "  IMPORTANT: test SSH in a new terminal before"
     echo "  closing this session."
 fi

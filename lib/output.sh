@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# lib/output.sh — shared console output utilities for vps-security scripts
+# lib/output.sh — shared console output utilities for linux-security scripts
 #
 # Usage (from any script):
-#   LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib"
+#   LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib"
 #   # shellcheck source=/dev/null
 #   source "${LIB_DIR}/output.sh"
 #

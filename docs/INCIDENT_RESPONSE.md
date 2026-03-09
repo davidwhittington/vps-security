@@ -1,6 +1,6 @@
 # Incident Response Playbook
 
-Operational guide for handling security incidents on servers managed with vps-security.
+Operational guide for handling security incidents on servers managed with linux-security.
 
 ---
 
@@ -8,7 +8,7 @@ Operational guide for handling security incidents on servers managed with vps-se
 
 | Item | Detail |
 |---|---|
-| Applies to | Servers running vps-security hardening stack |
+| Applies to | Servers running linux-security hardening stack |
 | Last updated | 2026-03-09 |
 
 ---
@@ -101,7 +101,7 @@ grep -rl "eval.*base64_decode\|eval.*gzinflate\|eval.*str_rot13" /var/www --incl
 find /var/www -name "*.php" -type f | xargs ls -la | sort -k6,7 | head -20
 
 # Run the web root permission audit
-bash scripts/audit/web-root-perms.sh
+bash scripts/web/audit/web-root-perms.sh
 ```
 
 **Containment:**
@@ -146,7 +146,7 @@ ls -la /etc/cron.d/ /var/spool/cron/crontabs/
 1. If active session: `pkill -u <username>` to kill their sessions
 2. Lock the account: `passwd -l <username>`
 3. Remove unauthorized SSH keys immediately
-4. Rotate your own SSH keys: `bash scripts/hardening/ssh-key-rotate.sh --show`
+4. Rotate your own SSH keys: `bash scripts/core/hardening/ssh-key-rotate.sh --show`
 5. Consider changing SSH port temporarily
 
 ---
@@ -283,8 +283,8 @@ After resolving:
 # Re-baseline after incident is resolved
 rkhunter --propupd
 aide --update && cp /var/lib/aide/aide.db.new /var/lib/aide/aide.db
-bash scripts/audit/services-check.sh --update
-bash scripts/audit/suid-check.sh --update
+bash scripts/core/audit/services-check.sh --update
+bash scripts/core/audit/suid-check.sh --update
 
 # Run full audit
 bash scripts/audit/audit.sh --report html --output /root/post-incident-audit.html

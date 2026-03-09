@@ -8,7 +8,7 @@ Known quirks, gotchas, and configuration differences across common VPS providers
 
 | Item | Detail |
 |---|---|
-| Applies to | vps-security deployments on major VPS providers |
+| Applies to | linux-security deployments on major VPS providers |
 | Last updated | 2026-03-09 |
 
 ---
@@ -98,8 +98,8 @@ systemctl restart systemd-timesyncd
 Vultr deploys with root access via SSH password. Disable before anything else:
 
 ```bash
-bash scripts/audit/preflight-check.sh  # verifies SSH key present
-bash scripts/hardening/01-immediate-hardening.sh
+bash scripts/core/audit/preflight-check.sh  # verifies SSH key present
+bash scripts/core/hardening/01-immediate-hardening.sh
 ```
 
 ### Serial Console
@@ -140,7 +140,7 @@ Adjust if you don't need it.
 If using Linode Longview agent, it runs as a system process and will appear in `services-check.sh` baseline. Update the baseline after installing Longview:
 
 ```bash
-bash scripts/audit/services-check.sh --update
+bash scripts/core/audit/services-check.sh --update
 ```
 
 ---
@@ -173,7 +173,7 @@ Or configure IMDSv2 (token-required) in the EC2 console.
 If using AWS SSM for console access instead of SSH, the SSM agent runs as a service. Add it to your baseline:
 
 ```bash
-bash scripts/audit/services-check.sh --update
+bash scripts/core/audit/services-check.sh --update
 ```
 
 ---

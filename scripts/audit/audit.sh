@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# audit.sh — vps-security baseline checker
+# audit.sh — linux-security baseline checker
 #
-# Read-only. Checks all security controls against the baseline.
+# Read-only. Profile-aware dispatcher: runs core checks always, web checks
+# when profile is web-server (default).
 # Exits 0 if all checks pass, 1 if any fail.
 #
 # Usage:
 #   bash scripts/audit/audit.sh
+#   bash scripts/audit/audit.sh --profile baseline
+#   bash scripts/audit/audit.sh --profile web-server
 #   bash scripts/audit/audit.sh --json
 #   bash scripts/audit/audit.sh --report           # Markdown report (default)
 #   bash scripts/audit/audit.sh --report md
@@ -18,12 +21,14 @@ JSON=false
 REPORT=false
 REPORT_FMT="md"
 REPORT_OUTPUT=""
+PROFILE="web-server"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --json)   JSON=true ;;
-        --report) REPORT=true; [[ "${2:-}" =~ ^(md|html)$ ]] && { REPORT_FMT="$2"; shift; } ;;
-        --output) REPORT_OUTPUT="${2:-}"; shift ;;
+        --json)    JSON=true ;;
+        --profile) PROFILE="${2:-web-server}"; shift ;;
+        --report)  REPORT=true; [[ "${2:-}" =~ ^(md|html)$ ]] && { REPORT_FMT="$2"; shift; } ;;
+        --output)  REPORT_OUTPUT="${2:-}"; shift ;;
     esac
     shift
 done
@@ -35,7 +40,7 @@ if [[ -z "$CONFIG_FILE" ]]; then
     for loc in \
         "$SCRIPT_DIR/../../config.env" \
         "$SCRIPT_DIR/../config.env" \
-        /etc/vps-security/config.env; do
+        /etc/linux-security/config.env; do
         if [[ -f "$loc" ]]; then CONFIG_FILE="$loc"; break; fi
     done
 fi
@@ -175,20 +180,23 @@ if command -v fail2ban-client &>/dev/null && systemctl is-active --quiet fail2ba
             "Run 01-immediate-hardening.sh to configure SSH and Apache fail2ban jails"
     fi
 
-    for jail in apache-auth apache-badbots apache-noscript; do
-        if fail2ban-client status "$jail" &>/dev/null; then
-            check "fail2ban ${jail} jail" "PASS" "" ""
-        else
-            check "fail2ban ${jail} jail" "WARN" "Jail not active" \
-                "Run 01-immediate-hardening.sh to add Apache jails"
-        fi
-    done
+    if [[ "$PROFILE" == "web-server" ]]; then
+        for jail in apache-auth apache-badbots apache-noscript; do
+            if fail2ban-client status "$jail" &>/dev/null; then
+                check "fail2ban ${jail} jail" "PASS" "" ""
+            else
+                check "fail2ban ${jail} jail" "WARN" "Jail not active" \
+                    "Run core/01-immediate-hardening.sh to add Apache jails"
+            fi
+        done
+    fi
 else
     check "fail2ban running" "FAIL" "fail2ban is not installed or not active" \
         "Install and configure: apt-get install fail2ban && run 01-immediate-hardening.sh"
 fi
 
-# --- Apache ---
+# --- Apache (web-server profile only) ---
+if [[ "$PROFILE" == "web-server" ]]; then
 echo ""
 echo "[ Apache ]"
 
@@ -204,7 +212,7 @@ if command -v apache2 &>/dev/null && systemctl is-active --quiet apache2 2>/dev/
         else
             check "ServerTokens Prod (no version in Server header)" "WARN" \
                 "Server header: ${server_hdr:-not found}" \
-                "Run 02-apache-hardening.sh to set ServerTokens Prod and ServerSignature Off"
+                "Run web/01-apache-hardening.sh to set ServerTokens Prod and ServerSignature Off"
         fi
 
         for hdr in "strict-transport-security" "x-content-type-options" "referrer-policy" "content-security-policy"; do
@@ -212,7 +220,7 @@ if command -v apache2 &>/dev/null && systemctl is-active --quiet apache2 2>/dev/
                 check "Apache header: ${hdr}" "PASS" "" ""
             else
                 check "Apache header: ${hdr}" "FAIL" "Header missing from HTTP response" \
-                    "Run 02-apache-hardening.sh to apply full security header suite"
+                    "Run web/01-apache-hardening.sh to apply full security header suite"
             fi
         done
     else
@@ -230,6 +238,7 @@ else
     check "Apache running" "WARN" "Apache not active or not installed" \
         "Install: apt-get install apache2"
 fi
+fi # end web-server profile
 
 # --- Updates ---
 echo ""
@@ -256,7 +265,8 @@ if command -v apt &>/dev/null; then
     fi
 fi
 
-# --- Certificates ---
+# --- Certificates (web-server profile only) ---
+if [[ "$PROFILE" == "web-server" ]]; then
 echo ""
 echo "[ TLS Certificates ]"
 
@@ -279,6 +289,7 @@ else
     check "TLS certificates" "WARN" "certbot not found — cannot check cert expiry" \
         "Install certbot: snap install --classic certbot"
 fi
+fi # end web-server profile
 
 # ============================================================================
 # OUTPUT — CONSOLE / JSON
@@ -289,6 +300,7 @@ if ! $REPORT; then
         echo "{"
         echo "  \"host\": \"$(hostname -f)\","
         echo "  \"date\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\","
+        echo "  \"profile\": \"${PROFILE}\","
         echo "  \"summary\": {\"pass\": $PASS, \"warn\": $WARN, \"fail\": $FAIL},"
         echo "  \"checks\": ["
         local_sep=""
@@ -305,7 +317,7 @@ if ! $REPORT; then
         echo ""
         echo "========================================="
         echo "  Audit Summary — $(hostname -f)"
-        echo "  $(date '+%Y-%m-%d %H:%M %Z')"
+        echo "  $(date '+%Y-%m-%d %H:%M %Z')  [profile: ${PROFILE}]"
         echo ""
         for result in "${RESULTS[@]}"; do
             IFS='|' read -r s n d r <<< "$result"
@@ -330,7 +342,7 @@ REPORT_DATE_SHORT="$(date '+%Y-%m-%d')"
 
 # Default output path
 if [[ -z "$REPORT_OUTPUT" ]]; then
-    REPORT_OUTPUT="/tmp/vps-security-audit-${HOST}-${REPORT_DATE_SHORT}.${REPORT_FMT}"
+    REPORT_OUTPUT="/tmp/linux-security-audit-${HOST}-${REPORT_DATE_SHORT}.${REPORT_FMT}"
 fi
 
 # --- Collect grouped results ---
@@ -347,10 +359,11 @@ done
 # ── Markdown report ──────────────────────────────────────────────────────────
 generate_md() {
     cat << MDEOF
-# vps-security Audit Report
+# linux-security Audit Report
 
 **Host:** ${HOST}
 **Date:** ${REPORT_DATE}
+**Profile:** ${PROFILE}
 **Result:** PASS: ${PASS} · WARN: ${WARN} · FAIL: ${FAIL}
 
 ---
@@ -402,7 +415,7 @@ MDEOF
     fi
 
     echo "---"
-    echo "_Generated by vps-security audit.sh · https://github.com/davidwhittington/vps-security_"
+    echo "_Generated by linux-security audit.sh · https://github.com/davidwhittington/linux-security_"
 }
 
 # ── HTML report ──────────────────────────────────────────────────────────────
@@ -417,7 +430,7 @@ generate_html() {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>vps-security Audit — ${HOST} — ${REPORT_DATE_SHORT}</title>
+<title>linux-security Audit — ${HOST} — ${REPORT_DATE_SHORT}</title>
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
   --green:#3fb950;--yellow:#d29922;--red:#f85149;--blue:#58a6ff;}
@@ -453,9 +466,9 @@ footer a{color:var(--muted);}
 <body>
 <div class="wrap">
 <header>
-  <h1>vps-security Audit Report</h1>
+  <h1>linux-security Audit Report</h1>
   <div class="meta">
-    <strong>${HOST}</strong> &nbsp;·&nbsp; ${REPORT_DATE}
+    <strong>${HOST}</strong> &nbsp;·&nbsp; ${REPORT_DATE} &nbsp;·&nbsp; profile: ${PROFILE}
   </div>
   <div class="summary">
     <span class="badge badge-fail">FAIL: ${FAIL}</span>
@@ -516,7 +529,7 @@ HTMLEOF
 
     cat << HTMLFOOTER
 <footer>
-  Generated by <a href="https://github.com/davidwhittington/vps-security">vps-security</a> audit.sh
+  Generated by <a href="https://github.com/davidwhittington/linux-security">linux-security</a> audit.sh
 </footer>
 </div>
 </body>

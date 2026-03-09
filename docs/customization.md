@@ -2,6 +2,8 @@
 
 All user-specific values live in `config.env` at the repo root. Fill it in once before running anything. The scripts auto-discover it and fall back to per-variable defaults if it is not found.
 
+For the web-server profile, a second file — `config.web.env` — holds web-layer settings. Copy it to the repo root alongside `config.env` before running bootstrap with `--profile web-server`.
+
 ---
 
 ## config.env Reference
@@ -20,7 +22,7 @@ SSH_PORT=2222
 
 ### `ADMIN_USER`
 
-The username to set up as a sudo admin in `03-setup-admin-user.sh`. No default — the script aborts if this is unset.
+The username to set up as a sudo admin in `core/02-setup-admin-user.sh`. No default — the script aborts if this is unset.
 
 The user must already exist on the server before running script 03. Create it first if needed:
 
@@ -36,7 +38,7 @@ ADMIN_USER="youruser"
 
 ### `ADMIN_EMAIL`
 
-Where to send reports and alerts. Used by `04-monthly-updates-setup.sh` (monthly upgrade report) and `05-log-monitoring-setup.sh` (Logwatch digest). No default — scripts abort if unset.
+Where to send reports and alerts. Used by `core/03-monthly-updates-setup.sh` (monthly upgrade report) and `web/02-log-monitoring-setup.sh` (Logwatch digest). No default — scripts abort if unset.
 
 ```bash
 ADMIN_EMAIL="you@example.com"
@@ -46,7 +48,7 @@ ADMIN_EMAIL="you@example.com"
 
 ### `MAIL_FROM`
 
-The From address on outgoing server emails. Used by `05-log-monitoring-setup.sh` for the Logwatch configuration. Defaults to `server@<hostname>` if not set.
+The From address on outgoing server emails. Used by `web/02-log-monitoring-setup.sh` for the Logwatch configuration. Defaults to `server@<hostname>` if not set.
 
 ```bash
 MAIL_FROM="server@yourdomain.com"
@@ -56,7 +58,7 @@ MAIL_FROM="server@yourdomain.com"
 
 ### `SMTP_HOST` / `SMTP_PORT`
 
-SMTP relay host and port for `msmtp`. Used by `04-monthly-updates-setup.sh`.
+SMTP relay host and port for `msmtp`. Used by `core/03-monthly-updates-setup.sh`.
 
 Common values:
 
@@ -87,9 +89,15 @@ SMTP_PASS="your-app-password"
 
 ---
 
-### `CSP_FRAME_ANCESTORS`
+## config.web.env Reference
 
-Controls which domains may embed your pages in iframes. Used by `02-apache-hardening.sh` to set the `Content-Security-Policy` header's `frame-ancestors` directive.
+`config.web.env` is the web-server counterpart to `config.env`. It is loaded automatically by all scripts under `scripts/web/` and is also sourced by `bootstrap.sh` when running the `web-server` profile. Copy it to the repo root alongside `config.env` and fill in your values. If it is absent, all web scripts fall back to safe per-variable defaults.
+
+---
+
+### `CSP_FRAME_ANCESTORS` (config.web.env)
+
+Controls which domains may embed your pages in iframes. Used by `web/01-apache-hardening.sh` to set the `Content-Security-Policy` header's `frame-ancestors` directive.
 
 Common configurations:
 
@@ -102,6 +110,26 @@ CSP_FRAME_ANCESTORS="'self'"
 
 # Same-origin + specific trusted domains
 CSP_FRAME_ANCESTORS="'self' yourdomain.com www.yourdomain.com app.yourdomain.com"
+```
+
+---
+
+### `CERT_WARN_DAYS` (config.web.env)
+
+Days before TLS certificate expiry at which `web/03-cert-monitor-setup.sh` sends a warning email. Default: `30`.
+
+```bash
+CERT_WARN_DAYS=30
+```
+
+---
+
+### `WEB_ROOTS_DIR` (config.web.env)
+
+The directory that contains your virtual host document roots. Used by `web/06-vhost-hardener.sh` and the `web/audit/web-root-perms.sh` checker. Defaults to `/var/www` if not set.
+
+```bash
+WEB_ROOTS_DIR="/var/www"
 ```
 
 ---
@@ -120,7 +148,7 @@ This prints every change that would be made without touching the system. Run it 
 
 ## Testing Email Delivery
 
-After running scripts 04 and 05, verify email delivery manually:
+After running `core/03-monthly-updates-setup.sh` and `web/02-log-monitoring-setup.sh`, verify email delivery manually:
 
 ```bash
 /usr/local/sbin/monthly-apt-report.sh
@@ -151,8 +179,8 @@ private/
 Export `CONFIG_FILE` to point at your base config, then source the override file on top:
 
 ```bash
-export CONFIG_FILE=/etc/vps-security/config.env
-source /etc/vps-security/config.env.local   # optional override
+export CONFIG_FILE=/etc/linux-security/config.env
+source /etc/linux-security/config.env.local   # optional override
 bash bootstrap.sh
 ```
 
@@ -200,10 +228,10 @@ If running on Debian 12, install certbot via apt rather than snap:
 apt install certbot python3-certbot-apache
 ```
 
-Then update the certbot path check in `06-cert-monitor-setup.sh` if needed:
+Then update the certbot path check in `web/03-cert-monitor-setup.sh` if needed:
 
 ```bash
 CERTBOT="$(command -v certbot)"
 ```
 
-All other scripts run without modification on Debian 12. Testing on Debian 12 is tracked in [issue #9](https://github.com/davidwhittington/vps-security/issues/9).
+All other scripts run without modification on Debian 12. Testing on Debian 12 is tracked in [issue #9](https://github.com/davidwhittington/linux-security/issues/9).

@@ -1,11 +1,32 @@
 # Changelog
 
-All notable changes to vps-security are documented here.
+All notable changes to linux-security are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
 ## [Unreleased]
+
+---
+
+## [1.0.0] — 2026-03-09
+
+### Added
+- `profiles/baseline.conf` — script manifest for core-only hardening; runs on any Ubuntu/Debian server with no Apache dependency
+- `profiles/web-server.conf` — script manifest for full stack hardening; core + Apache/PHP/MySQL (default, back-compatible with v0.x)
+- `config.web.env` — web-server-specific configuration file; separates `CSP_FRAME_ANCESTORS`, `CERT_WARN_DAYS`, and `WEB_ROOTS_DIR` from the core `config.env`
+- `docs/MIGRATION.md` — maps old script numbers and paths to their new locations for users upgrading from v0.x
+
+### Changed
+- Repo renamed `vps-security` → `linux-security`; GitHub redirects old clone URLs automatically
+- `scripts/hardening/` split into `scripts/core/hardening/` (8 scripts + ssh-key-rotate) and `scripts/web/hardening/` (10 scripts + rollback)
+- `scripts/audit/` split into `scripts/core/audit/` (12 scripts) and `scripts/web/audit/` (5 scripts); `audit.sh` remains at `scripts/audit/audit.sh` as a profile-aware dispatcher
+- All scripts renumbered within their new layer (core: 01–08, web: 01–10); see `docs/MIGRATION.md` for the full mapping
+- `bootstrap.sh` — added `--profile baseline|web-server` flag; default is `web-server` (back-compat); reads script list from `profiles/<name>.conf` instead of a hardcoded array; also loads `config.web.env` for web-server profile
+- `scripts/audit/audit.sh` — added `--profile baseline|web-server` flag; baseline profile skips Apache and TLS certificate sections; profile shown in console output, JSON, and reports
+- Config path in all scripts updated: `../../config.env` → `../../../config.env` (3-level depth from `scripts/{core,web}/{hardening,audit}/`)
+- All system-wide install paths updated: `/etc/vps-security/` → `/etc/linux-security/`
+- Web hardening scripts now load `config.web.env` in addition to `config.env` for web-specific variables
 
 ---
 

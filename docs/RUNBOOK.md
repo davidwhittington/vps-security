@@ -1,6 +1,6 @@
 # Runbook
 
-Operational runbook for common events on vps-security-managed servers.
+Operational runbook for common events on linux-security-managed servers.
 
 ---
 
@@ -9,7 +9,7 @@ Operational runbook for common events on vps-security-managed servers.
 | Item | Detail |
 |---|---|
 | Phase | 1 — Active Development |
-| Applies to | Any server provisioned with vps-security |
+| Applies to | Any server provisioned with linux-security |
 | Last updated | 2026-03-08 |
 
 ---
@@ -35,20 +35,20 @@ Operational runbook for common events on vps-security-managed servers.
 
 ```bash
 # On your local machine — clone and configure
-git clone https://github.com/davidwhittington/vps-security.git
-cd vps-security
+git clone https://github.com/davidwhittington/linux-security.git
+cd linux-security
 cp config.env.example config.env   # edit with your values
-scp config.env root@<server>:/etc/vps-security/config.env
+scp config.env root@<server>:/etc/linux-security/config.env
 
 # On the server
-export CONFIG_FILE=/etc/vps-security/config.env
+export CONFIG_FILE=/etc/linux-security/config.env
 bash bootstrap.sh
 ```
 
 Verify the run:
 
 ```bash
-bash scripts/audit/verify.sh
+bash scripts/core/audit/verify.sh
 bash scripts/audit/audit.sh
 ```
 
@@ -166,10 +166,10 @@ echo "Test from $(hostname -f)" | mail -s "msmtp test" "$ADMIN_EMAIL"
 cat /var/log/msmtp.log
 ```
 
-4. Verify SMTP credentials in `/etc/vps-security/config.env`, then re-run script 04:
+4. Verify SMTP credentials in `/etc/linux-security/config.env`, then re-run script 04:
 
 ```bash
-bash scripts/hardening/04-monthly-updates-setup.sh
+bash scripts/core/hardening/03-monthly-updates-setup.sh
 ```
 
 ---
@@ -206,11 +206,11 @@ bash scripts/audit/audit.sh
 For each FAIL category, run the specific audit script for more detail:
 
 ```bash
-bash scripts/audit/ssh-audit.sh
-bash scripts/audit/ports-check.sh
-bash scripts/audit/headers-check.sh
-bash scripts/audit/unattended-upgrades-check.sh
-bash scripts/audit/apparmor-check.sh
+bash scripts/core/audit/ssh-audit.sh
+bash scripts/core/audit/ports-check.sh
+bash scripts/web/audit/headers-check.sh
+bash scripts/web/audit/unattended-upgrades-check.sh
+bash scripts/core/audit/apparmor-check.sh
 ```
 
 ---
@@ -220,13 +220,13 @@ bash scripts/audit/apparmor-check.sh
 All scripts are idempotent — safe to re-run. Export config path first:
 
 ```bash
-export CONFIG_FILE=/etc/vps-security/config.env
+export CONFIG_FILE=/etc/linux-security/config.env
 
 # Example: re-run Apache hardening
-bash scripts/hardening/02-apache-hardening.sh
+bash scripts/web/hardening/01-apache-hardening.sh
 
 # Dry-run first to see what will change
-bash scripts/hardening/02-apache-hardening.sh --dry-run
+bash scripts/web/hardening/01-apache-hardening.sh --dry-run
 ```
 
 ---
@@ -235,14 +235,14 @@ bash scripts/hardening/02-apache-hardening.sh --dry-run
 
 ```bash
 # Rollback all scripts (restores .bak files)
-bash scripts/hardening/rollback.sh
+bash scripts/web/hardening/rollback.sh
 
 # Rollback a single script
-bash scripts/hardening/rollback.sh --script 01   # SSH
-bash scripts/hardening/rollback.sh --script 02   # Apache
+bash scripts/web/hardening/rollback.sh --script 01   # SSH
+bash scripts/web/hardening/rollback.sh --script 02   # Apache
 
 # Dry-run rollback
-bash scripts/hardening/rollback.sh --dry-run
+bash scripts/web/hardening/rollback.sh --dry-run
 ```
 
 Rollback only restores config file backups. It does not remove packages or cron jobs.
@@ -265,7 +265,7 @@ apache2ctl configtest && systemctl reload apache2
 4. Run the header checker to verify security posture:
 
 ```bash
-bash scripts/audit/headers-check.sh
+bash scripts/web/audit/headers-check.sh
 ```
 
 5. Add the domain to `private/servers/inventory.yml`
