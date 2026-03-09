@@ -7,6 +7,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- `install.sh` — single-command system-wide installer; supports install, upgrade, and uninstall modes; copies scripts to `/opt/linux-security/`, config templates to `/etc/linux-security/`, symlinks `bootstrap.sh` and `audit.sh` into `/usr/local/bin/`; closes #102
+- Debian 12 compatibility: certbot auto-detected via `command -v certbot` with `/snap/bin/certbot` as existence-checked fallback; no manual path changes needed; RUNBOOK.md and customization.md updated; closes #100
+
 ---
 
 ## [1.0.0] — 2026-03-09
