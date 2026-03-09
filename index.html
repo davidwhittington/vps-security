@@ -1,683 +1,604 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>vps-security — Ubuntu VPS hardening toolkit</title>
-<meta name="description" content="Battle-tested bash scripts for hardening Ubuntu VPS servers. UFW, SSH, fail2ban, Apache, monitoring, cert alerts, and malware defense — one config file, one command.">
-<style>
-:root {
-  --bg:           #0d1117;
-  --surface:      #161b22;
-  --surface2:     #21262d;
-  --border:       #30363d;
-  --green:        #3fb950;
-  --green-dim:    #238636;
-  --green-glow:   rgba(63,185,80,.12);
-  --white:        #e6edf3;
-  --gray:         #8b949e;
-  --gray-dim:     #484f58;
-  --blue:         #79c0ff;
-  --font-mono:    'Courier New', Courier, monospace;
-  --font-sans:    system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vps-security — Ubuntu VPS Hardening Toolkit</title>
+  <meta name="description" content="Battle-tested bash scripts for hardening Ubuntu VPS servers. UFW, SSH, fail2ban, Apache, monitoring, cert alerts, and malware defense — one config file, one command.">
+  <style>
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --accent:   #58a6ff;
+      --green:    #3fb950;
+      --orange:   #d29922;
+      --red:      #f85149;
+      --code-bg:  #1f2937;
+    }
 
-*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
-html  { scroll-behavior:smooth; }
-body  {
-  background:var(--bg);
-  color:var(--white);
-  font-family:var(--font-sans);
-  font-size:16px;
-  line-height:1.6;
-  -webkit-font-smoothing:antialiased;
-}
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ─── DOT GRID BACKGROUND ──────────────────────────────── */
-body::before {
-  content:'';
-  position:fixed;
-  inset:0;
-  background-image:radial-gradient(circle,#30363d 1px,transparent 1px);
-  background-size:28px 28px;
-  opacity:.3;
-  pointer-events:none;
-  z-index:-1;
-}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
 
-/* ─── HERO ─────────────────────────────────────────────── */
-.hero {
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  padding:6rem 2rem;
-  max-width:1100px;
-  margin:0 auto;
-}
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
 
-.hero-eyebrow {
-  font-family:var(--font-mono);
-  font-size:.72rem;
-  color:var(--green);
-  letter-spacing:.18em;
-  text-transform:uppercase;
-  margin-bottom:1.75rem;
-  opacity:0;
-  animation:fadeUp .5s ease forwards;
-}
+    /* ── Nav ─────────────────────────────────────────────── */
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand { font-weight: 700; font-size: 1.1rem; color: var(--text); }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { color: var(--muted); font-size: 0.9rem; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
 
-.hero-eyebrow::before { content:'> '; }
+    /* ── Hero ────────────────────────────────────────────── */
+    .hero {
+      max-width: 860px;
+      margin: 5rem auto 3rem;
+      padding: 0 2rem;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(88, 166, 255, 0.1);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      color: var(--accent);
+      padding: 0.25rem 0.75rem;
+      border-radius: 2rem;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.25rem;
+    }
+    h1 span { color: var(--accent); }
+    .hero-sub {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+    }
 
-h1 {
-  font-family:var(--font-mono);
-  font-size:clamp(2.8rem,9vw,6rem);
-  font-weight:normal;
-  line-height:1.0;
-  letter-spacing:-.03em;
-  margin-bottom:.9rem;
-  opacity:0;
-  animation:fadeUp .5s ease .08s forwards;
-}
+    /* ── Install block ───────────────────────────────────── */
+    .install-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.5rem 2rem;
+      max-width: 560px;
+      margin: 0 auto 3.5rem;
+      text-align: left;
+      position: relative;
+    }
+    .install-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+    .install-block pre {
+      font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+      font-size: 0.88rem;
+      color: var(--green);
+      white-space: pre;
+      line-height: 1.8;
+    }
+    .install-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
 
-h1 em {
-  font-style:normal;
-  color:var(--green);
-}
+    /* ── Section ─────────────────────────────────────────── */
+    section {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+      border-top: 1px solid var(--border);
+    }
+    h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; }
+    h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem; }
+    p  { color: var(--muted); margin-bottom: 1rem; }
+    p:last-child { margin-bottom: 0; }
 
-.hero-tagline {
-  font-size:clamp(1.05rem,2.2vw,1.3rem);
-  color:var(--gray);
-  max-width:580px;
-  margin-bottom:.6rem;
-  opacity:0;
-  animation:fadeUp .5s ease .16s forwards;
-}
+    /* ── Checks grid ─────────────────────────────────────── */
+    .checks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .check-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      padding: 1rem 1.2rem;
+    }
+    .check-icon { font-size: 1.25rem; margin-bottom: 0.4rem; }
+    .check-card h3 { font-size: 0.9rem; margin-bottom: 0.25rem; }
+    .check-card p  { font-size: 0.82rem; margin: 0; }
 
-.hero-desc {
-  font-family:var(--font-mono);
-  font-size:.82rem;
-  color:var(--gray);
-  max-width:540px;
-  margin-bottom:2.5rem;
-  padding-left:1rem;
-  border-left:2px solid var(--border);
-  opacity:0;
-  animation:fadeUp .5s ease .24s forwards;
-}
+    /* ── Script list ─────────────────────────────────────── */
+    .script-group { margin-top: 1.5rem; }
+    .script-group-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.6rem;
+      padding-left: 0.1rem;
+    }
+    .cmd-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .cmd-row {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.65rem 1rem;
+    }
+    .cmd-name {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 0.82rem;
+      color: var(--green);
+      white-space: nowrap;
+      min-width: 230px;
+    }
+    .cmd-desc { font-size: 0.82rem; color: var(--muted); }
 
-.hero-actions {
-  display:flex;
-  gap:.875rem;
-  flex-wrap:wrap;
-  opacity:0;
-  animation:fadeUp .5s ease .32s forwards;
-}
+    /* ── Code block ──────────────────────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      padding: 1.25rem 1.5rem;
+      margin: 1.25rem 0;
+      overflow-x: auto;
+      position: relative;
+    }
+    .code-block pre {
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 0.85rem;
+      line-height: 1.8;
+      color: var(--text);
+    }
+    .code-block pre .comment { color: var(--muted); }
+    .code-block pre .cmd     { color: var(--green); }
+    .code-block pre .flag    { color: var(--accent); }
+    .code-block pre .arg     { color: #e3b341; }
 
-.btn {
-  display:inline-flex;
-  align-items:center;
-  gap:.45rem;
-  padding:.6rem 1.35rem;
-  font-family:var(--font-mono);
-  font-size:.85rem;
-  text-decoration:none;
-  border-radius:4px;
-  transition:all .2s ease;
-  white-space:nowrap;
-}
+    /* ── Copy button ─────────────────────────────────────── */
+    .copy-btn {
+      position: absolute;
+      top: 0.6rem;
+      right: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      user-select: none;
+      line-height: 1.6;
+    }
+    .copy-btn:hover {
+      color: var(--text);
+      border-color: var(--muted);
+      background: var(--border);
+    }
+    .copy-btn.copied {
+      color: var(--green);
+      border-color: var(--green);
+    }
 
-.btn-primary {
-  background:var(--green);
-  color:#000;
-  border:1px solid var(--green);
-  font-weight:700;
-}
-.btn-primary:hover {
-  background:#4cd15e;
-  border-color:#4cd15e;
-  box-shadow:0 0 24px var(--green-glow);
-}
+    /* ── Guides grid ─────────────────────────────────────── */
+    .guides-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-top: 1.25rem;
+    }
+    .guide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      padding: 1rem 1.2rem;
+      transition: border-color 0.15s;
+      display: block;
+    }
+    .guide-card:hover { border-color: var(--accent); text-decoration: none; }
+    .guide-card h3 { font-size: 0.9rem; margin-bottom: 0.3rem; color: var(--text); }
+    .guide-card p  { font-size: 0.82rem; margin: 0; }
 
-.btn-secondary {
-  background:transparent;
-  color:var(--green);
-  border:1px solid var(--green);
-}
-.btn-secondary:hover {
-  background:var(--green-glow);
-  box-shadow:0 0 24px var(--green-glow);
-}
+    /* ── Footer ──────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
 
-.hero-tags {
-  margin-top:3rem;
-  display:flex;
-  flex-wrap:wrap;
-  gap:1.5rem;
-  opacity:0;
-  animation:fadeUp .5s ease .4s forwards;
-}
-
-.tag {
-  font-family:var(--font-mono);
-  font-size:.72rem;
-  color:var(--gray-dim);
-  display:flex;
-  align-items:center;
-  gap:.4rem;
-}
-.tag-dot {
-  width:6px;
-  height:6px;
-  border-radius:50%;
-  background:var(--green);
-  flex-shrink:0;
-  animation:pulse 2.5s ease-in-out infinite;
-}
-
-/* ─── LAYOUT UTILITIES ──────────────────────────────────── */
-.divider {
-  border:none;
-  border-top:1px solid var(--border);
-  max-width:1100px;
-  margin:0 auto;
-}
-
-section {
-  padding:5rem 2rem;
-  max-width:1100px;
-  margin:0 auto;
-}
-
-.section-label {
-  font-family:var(--font-mono);
-  font-size:.68rem;
-  color:var(--green);
-  letter-spacing:.16em;
-  text-transform:uppercase;
-  margin-bottom:.65rem;
-}
-.section-label::before { content:'// '; }
-
-.section-title {
-  font-family:var(--font-mono);
-  font-size:clamp(1.4rem,3.5vw,2.1rem);
-  font-weight:normal;
-  color:var(--white);
-  margin-bottom:2.5rem;
-  line-height:1.2;
-}
-
-/* ─── FEATURE GRID ──────────────────────────────────────── */
-.features {
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(275px,1fr));
-  gap:1px;
-  background:var(--border);
-  border:1px solid var(--border);
-  border-radius:8px;
-  overflow:hidden;
-}
-
-.feature {
-  background:var(--surface);
-  padding:1.5rem;
-  transition:background .18s ease;
-  position:relative;
-}
-.feature:hover { background:var(--surface2); }
-.feature::after {
-  content:'';
-  position:absolute;
-  top:0; left:0; right:0;
-  height:2px;
-  background:transparent;
-  transition:background .18s ease;
-}
-.feature:hover::after { background:var(--green); }
-
-.feature-label {
-  font-family:var(--font-mono);
-  font-size:.63rem;
-  color:var(--green);
-  opacity:.75;
-  letter-spacing:.1em;
-  text-transform:uppercase;
-  margin-bottom:.6rem;
-}
-
-.feature-name {
-  font-family:var(--font-mono);
-  font-size:.95rem;
-  color:var(--white);
-  margin-bottom:.45rem;
-}
-
-.feature-detail {
-  font-size:.82rem;
-  color:var(--gray);
-  line-height:1.5;
-}
-
-/* ─── TERMINAL ──────────────────────────────────────────── */
-.terminal {
-  background:#010409;
-  border:1px solid var(--border);
-  border-radius:8px;
-  overflow:hidden;
-  font-family:var(--font-mono);
-  font-size:.875rem;
-}
-
-.term-bar {
-  background:var(--surface2);
-  padding:.7rem 1rem;
-  display:flex;
-  align-items:center;
-  gap:.5rem;
-  border-bottom:1px solid var(--border);
-}
-
-.term-dots { display:flex; gap:.35rem; }
-
-.term-dot {
-  width:11px; height:11px;
-  border-radius:50%;
-}
-.td-r { background:#ff5f57; }
-.td-y { background:#ffbd2e; }
-.td-g { background:#28c840; }
-
-.term-name {
-  font-size:.72rem;
-  color:var(--gray-dim);
-  margin-left:.4rem;
-}
-
-.term-body {
-  padding:1.5rem;
-  line-height:2.1;
-}
-
-.term-line { display:block; }
-.p   { color:var(--green); user-select:none; }
-.cmd { color:var(--white); }
-.arg { color:var(--blue); }
-.cmt { color:var(--gray-dim); }
-
-.cursor {
-  display:inline-block;
-  width:.55em; height:1.1em;
-  background:var(--green);
-  vertical-align:text-bottom;
-  animation:blink 1s step-end infinite;
-}
-
-.quickstart-note {
-  margin-top:1.4rem;
-  font-size:.82rem;
-  color:var(--gray);
-}
-
-code {
-  font-family:var(--font-mono);
-  color:var(--green);
-  background:var(--surface);
-  padding:.1em .4em;
-  border-radius:3px;
-  font-size:.9em;
-}
-
-/* ─── INVENTORY ─────────────────────────────────────────── */
-.inventory {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:1.5rem;
-}
-
-@media(max-width:768px) {
-  .inventory { grid-template-columns:1fr; }
-}
-
-.inv-panel {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:8px;
-  overflow:hidden;
-}
-
-.inv-header {
-  background:var(--surface2);
-  padding:.7rem 1.2rem;
-  border-bottom:1px solid var(--border);
-  font-family:var(--font-mono);
-  font-size:.72rem;
-  color:var(--green);
-  display:flex;
-  align-items:center;
-  gap:.5rem;
-}
-.inv-header::before { content:'▸ '; }
-
-.inv-list { list-style:none; }
-
-.inv-item {
-  padding:.7rem 1.2rem;
-  border-bottom:1px solid var(--border);
-  display:grid;
-  grid-template-columns:auto 1fr;
-  gap:.75rem;
-  align-items:baseline;
-  transition:background .15s ease;
-}
-.inv-item:last-child { border-bottom:none; }
-.inv-item:hover { background:var(--surface2); }
-
-.inv-script {
-  font-family:var(--font-mono);
-  font-size:.72rem;
-  color:var(--green);
-  white-space:nowrap;
-}
-
-.inv-desc {
-  font-size:.78rem;
-  color:var(--gray);
-  line-height:1.4;
-}
-
-/* ─── FOOTER ─────────────────────────────────────────────── */
-footer {
-  border-top:1px solid var(--border);
-  padding:2rem;
-}
-
-.foot-inner {
-  max-width:1100px;
-  margin:0 auto;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:1rem;
-  font-family:var(--font-mono);
-  font-size:.72rem;
-  color:var(--gray-dim);
-}
-
-.foot-inner a {
-  color:var(--gray);
-  text-decoration:none;
-  transition:color .2s;
-}
-.foot-inner a:hover { color:var(--green); }
-
-.foot-sep { color:var(--border); }
-
-/* ─── ANIMATIONS ─────────────────────────────────────────── */
-@keyframes fadeUp {
-  from { opacity:0; transform:translateY(14px); }
-  to   { opacity:1; transform:translateY(0); }
-}
-@keyframes blink {
-  0%,100% { opacity:1; }
-  50%      { opacity:0; }
-}
-@keyframes pulse {
-  0%,100% { opacity:1; transform:scale(1); }
-  50%      { opacity:.5; transform:scale(.85); }
-}
-
-/* ─── RESPONSIVE ─────────────────────────────────────────── */
-@media(max-width:600px) {
-  .hero   { padding:4rem 1.25rem; min-height:auto; padding-top:5rem; }
-  section { padding:3.5rem 1.25rem; }
-  .features { grid-template-columns:1fr; }
-  .foot-inner { flex-direction:column; text-align:center; }
-}
-</style>
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 600px) {
+      nav { flex-direction: column; gap: 1rem; }
+      .cmd-row { flex-direction: column; gap: 0.25rem; }
+      .cmd-name { min-width: unset; }
+      .install-block pre { font-size: 0.78rem; }
+    }
+  </style>
 </head>
 <body>
 
-<!-- ─── HERO ──────────────────────────────────────────────── -->
-<header>
-  <div class="hero">
-    <div class="hero-eyebrow">open source &nbsp;·&nbsp; ubuntu vps hardening</div>
-    <h1>vps<em>-security</em></h1>
-    <p class="hero-tagline">Battle-tested Ubuntu VPS hardening in minutes.</p>
-    <p class="hero-desc">11 hardening scripts + 9 audit scripts. Firewall, SSH, fail2ban, Apache,
-    monitoring, cert alerts, and malware defense — one config file, one command.</p>
-    <div class="hero-actions">
-      <a href="https://github.com/davidwhittington/vps-security" class="btn btn-primary">↗ View on GitHub</a>
-      <a href="#quickstart" class="btn btn-secondary">$ Quick Start</a>
-    </div>
-    <div class="hero-tags">
-      <span class="tag"><span class="tag-dot"></span>Ubuntu 24.04 LTS</span>
-      <span class="tag"><span class="tag-dot"></span>Debian 12 compatible</span>
-      <span class="tag"><span class="tag-dot"></span>MIT License</span>
-      <span class="tag"><span class="tag-dot"></span>--dry-run on every script</span>
-      <span class="tag"><span class="tag-dot"></span>CIS-aligned</span>
+<!-- ── Nav ──────────────────────────────────────────────── -->
+<nav>
+  <span class="nav-brand">vps-security</span>
+  <div class="nav-links">
+    <a href="https://github.com/davidwhittington/vps-security">GitHub</a>
+    <a href="https://github.com/davidwhittington/vps-security/tree/main/docs">Docs</a>
+    <a href="https://github.com/davidwhittington/vps-security/blob/main/CHANGELOG.md">Changelog</a>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-badge">Ubuntu VPS Security Tooling</div>
+  <h1>Harden your server.<br><span>In minutes, not hours.</span></h1>
+  <p class="hero-sub">
+    vps-security is an open-source toolkit of bash scripts for hardening Ubuntu VPS servers.
+    One config file, one command &mdash; firewall, SSH, fail2ban, Apache, monitoring, cert alerts,
+    and malware defense all configured and verified.
+  </p>
+
+  <div class="install-block">
+    <div class="install-label">Get started</div>
+    <pre>git clone https://github.com/davidwhittington/vps-security.git
+cd vps-security
+cp config.env.example config.env
+bash bootstrap.sh</pre>
+    <div class="install-note">
+      Every script supports <code style="font-family:monospace;color:var(--green)">--dry-run</code> &mdash; preview all changes before applying.<br>
+      Ubuntu 24.04 LTS &middot; Debian 12 compatible &middot; Run as root
     </div>
   </div>
-</header>
+</div>
 
-<hr class="divider">
-
-<!-- ─── WHAT IT DOES ──────────────────────────────────────── -->
+<!-- ── What it hardens ──────────────────────────────────── -->
 <section>
-  <div class="section-label">capabilities</div>
-  <h2 class="section-title">What gets hardened</h2>
-  <div class="features">
-
-    <div class="feature">
-      <div class="feature-label">01 · network</div>
-      <div class="feature-name">Firewall</div>
-      <p class="feature-detail">UFW with default-deny ingress, allowlist for SSH/HTTP/HTTPS, and per-port connection rate limiting on 80 and 443.</p>
+  <h2>What it hardens</h2>
+  <p>Run <code style="font-family:monospace;color:var(--green)">bash bootstrap.sh</code> and get a fully hardened server covering every major security control area.</p>
+  <div class="checks-grid">
+    <div class="check-card">
+      <div class="check-icon">🔥</div>
+      <h3>Firewall</h3>
+      <p>UFW default-deny ingress, SSH/HTTP/HTTPS allowlist, connection rate limiting on ports 80 and 443.</p>
     </div>
-
-    <div class="feature">
-      <div class="feature-label">01 · access</div>
-      <div class="feature-name">SSH Hardening</div>
-      <p class="feature-detail">Password auth off. Restricts to modern ciphers (AES-GCM, ChaCha20), MACs (HMAC-SHA2/ETM), and KexAlgorithms (Curve25519, ECDH). MaxAuthTries 3, LoginGraceTime 30.</p>
+    <div class="check-card">
+      <div class="check-icon">🔑</div>
+      <h3>SSH Hardening</h3>
+      <p>Password auth off, modern ciphers only (AES-GCM, ChaCha20), HMAC-SHA2/ETM MACs, Curve25519 key exchange. MaxAuthTries 3.</p>
     </div>
-
-    <div class="feature">
-      <div class="feature-label">01 · intrusion</div>
-      <div class="feature-name">Fail2ban</div>
-      <p class="feature-detail">SSH + Apache jails: apache-auth, apache-badbots (1-strike, 24h ban), apache-noscript. Configurable ban window and retry limits via config.env.</p>
+    <div class="check-card">
+      <div class="check-icon">🚫</div>
+      <h3>Fail2ban</h3>
+      <p>SSH + Apache jails: apache-auth, apache-badbots (1-strike, 24h ban), apache-noscript. Configurable via config.env.</p>
     </div>
-
-    <div class="feature">
-      <div class="feature-label">02 · web</div>
-      <div class="feature-name">Apache Hardening</div>
-      <p class="feature-detail">ServerTokens Prod, HSTS, CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy. TRACE off, mod_status off, .git access blocked.</p>
+    <div class="check-card">
+      <div class="check-icon">🌐</div>
+      <h3>Apache Hardening</h3>
+      <p>ServerTokens Prod, HSTS, CSP, X-Content-Type-Options, Referrer-Policy. TRACE off, mod_status off, .git access blocked.</p>
     </div>
-
-    <div class="feature">
-      <div class="feature-label">05 · observability</div>
-      <div class="feature-name">Monitoring</div>
-      <p class="feature-detail">Logwatch daily HTML email digest. GoAccess daily traffic report (password-protected). Monthly apt upgrade + disk + fail2ban status report via msmtp.</p>
+    <div class="check-card">
+      <div class="check-icon">📊</div>
+      <h3>Monitoring</h3>
+      <p>Logwatch daily HTML email digest. GoAccess daily traffic report. Monthly apt upgrade + disk + fail2ban report via msmtp.</p>
     </div>
-
-    <div class="feature">
-      <div class="feature-label">06 · tls</div>
-      <div class="feature-name">Certificate Alerts</div>
-      <p class="feature-detail">Weekly certbot expiry monitor, independent of the monthly report. Emails on any cert expiring within 30 days (configurable via CERT_WARN_DAYS).</p>
+    <div class="check-card">
+      <div class="check-icon">🔏</div>
+      <h3>Certificate Alerts</h3>
+      <p>Weekly certbot expiry monitor, independent of the monthly report. Fires when any cert is within 30 days of expiry.</p>
     </div>
-
-    <div class="feature">
-      <div class="feature-label">07–10 · malware</div>
-      <div class="feature-name">Malware Defense</div>
-      <p class="feature-detail">ClamAV weekly web-root scan with quarantine. rkhunter rootkit scanner with clean-system baseline. ModSecurity + OWASP CRS (DetectionOnly by default).</p>
+    <div class="check-card">
+      <div class="check-icon">🛡️</div>
+      <h3>Malware Defense</h3>
+      <p>ClamAV weekly web-root scan with quarantine. rkhunter rootkit scanner with clean baseline. ModSecurity + OWASP CRS.</p>
     </div>
-
-    <div class="feature">
-      <div class="feature-label">01 · kernel</div>
-      <div class="feature-name">Kernel Hardening</div>
-      <p class="feature-detail">sysctl: ICMP redirects disabled, martian packet logging, IP forwarding off, TCP SYN cookies, source routing disabled, reverse path filtering enabled.</p>
+    <div class="check-card">
+      <div class="check-icon">⚙️</div>
+      <h3>Kernel Hardening</h3>
+      <p>sysctl: ICMP redirects off, martian logging, IP forwarding off, TCP SYN cookies, reverse path filtering enabled.</p>
     </div>
-
-    <div class="feature">
-      <div class="feature-label">audit scripts</div>
-      <div class="feature-name">Audit Tools</div>
-      <p class="feature-detail">9 read-only posture scripts. Color-coded PASS/WARN/FAIL. Covers open ports, SSH config, security headers, AppArmor, SUID drift, world-writable files, and more.</p>
+    <div class="check-card">
+      <div class="check-icon">🔍</div>
+      <h3>Audit Tools</h3>
+      <p>9 read-only posture scripts with color-coded PASS/WARN/FAIL. Ports, SSH config, headers, AppArmor, SUID drift, and more.</p>
     </div>
-
-    <div class="feature">
-      <div class="feature-label">rollback</div>
-      <div class="feature-name">Rollback</div>
-      <p class="feature-detail">Every modifying script backs up files before touching them. rollback.sh restores .bak files per-script or all at once — with --dry-run preview.</p>
+    <div class="check-card">
+      <div class="check-icon">↩️</div>
+      <h3>Rollback</h3>
+      <p>Every script backs up files before modifying. rollback.sh restores .bak files per-script or all at once.</p>
     </div>
-
   </div>
 </section>
 
-<hr class="divider">
+<!-- ── Scripts ───────────────────────────────────────────── -->
+<section>
+  <h2>Scripts</h2>
+  <p>Twenty-one scripts split between hardening and auditing. All support <code style="font-family:monospace;color:var(--green)">--dry-run</code>.</p>
 
-<!-- ─── QUICK START ───────────────────────────────────────── -->
-<section id="quickstart">
-  <div class="section-label">getting started</div>
-  <h2 class="section-title">Up and running in four commands</h2>
-  <div class="terminal">
-    <div class="term-bar">
-      <div class="term-dots">
-        <div class="term-dot td-r"></div>
-        <div class="term-dot td-y"></div>
-        <div class="term-dot td-g"></div>
+  <div class="script-group">
+    <div class="script-group-label">scripts/hardening/</div>
+    <div class="cmd-list">
+      <div class="cmd-row">
+        <span class="cmd-name">01-immediate-hardening.sh</span>
+        <span class="cmd-desc">UFW firewall, fail2ban (SSH + Apache jails), SSH hardening, sysctl kernel params</span>
       </div>
-      <span class="term-name">root@server — bash</span>
-    </div>
-    <div class="term-body">
-      <span class="term-line"><span class="p">$ </span><span class="cmd">git clone</span> <span class="arg">https://github.com/davidwhittington/vps-security.git</span></span>
-      <span class="term-line"><span class="p">$ </span><span class="cmd">cd</span> <span class="arg">vps-security</span></span>
-      <span class="term-line"><span class="p">$ </span><span class="cmd">cp</span> <span class="arg">config.env.example config.env</span>  <span class="cmt"># fill in ADMIN_EMAIL, SSH_PORT, SMTP settings</span></span>
-      <span class="term-line"><span class="p">$ </span><span class="cmd">bash</span> <span class="arg">bootstrap.sh</span><span class="cursor"></span></span>
+      <div class="cmd-row">
+        <span class="cmd-name">02-apache-hardening.sh</span>
+        <span class="cmd-desc">Security headers, ServerTokens Prod, disable TRACE and mod_status, block .git access</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">03-setup-admin-user.sh</span>
+        <span class="cmd-desc">Promote existing user to sudo, propagate SSH keys from root</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">04-monthly-updates-setup.sh</span>
+        <span class="cmd-desc">msmtp relay configuration, monthly apt upgrade report and cron job</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">05-log-monitoring-setup.sh</span>
+        <span class="cmd-desc">Logwatch daily digest, GoAccess traffic report, logrotate for toolkit logs</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">06-cert-monitor-setup.sh</span>
+        <span class="cmd-desc">Weekly TLS certificate expiry alerts &mdash; fires at 30 days (configurable)</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">07-rkhunter-setup.sh</span>
+        <span class="cmd-desc">Rootkit scanner installed with clean-system property baseline</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">08-auditd-setup.sh</span>
+        <span class="cmd-desc">CIS Benchmark-aligned kernel audit ruleset via auditd</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">09-clamav-setup.sh</span>
+        <span class="cmd-desc">ClamAV weekly /var/www scan with quarantine and email alert on detection</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">10-modsecurity-setup.sh</span>
+        <span class="cmd-desc">ModSecurity + OWASP CRS in DetectionOnly mode by default</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">11-vhost-hardener.sh</span>
+        <span class="cmd-desc">Options -Indexes, AllowOverride None, deny dotfiles and env files across all web roots</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">rollback.sh</span>
+        <span class="cmd-desc">Restore .bak config backups from scripts 01, 02, 04, and 05 &mdash; per-script or all at once</span>
+      </div>
     </div>
   </div>
-  <p class="quickstart-note">
-    Every script supports <code>--dry-run</code> — pass it to <code>bootstrap.sh</code> to preview
-    every change before anything is applied. Run <code>bash scripts/audit/audit.sh</code> afterwards
-    to verify the full posture.
+
+  <div class="script-group" style="margin-top:1.5rem">
+    <div class="script-group-label">scripts/audit/</div>
+    <div class="cmd-list">
+      <div class="cmd-row">
+        <span class="cmd-name">audit.sh</span>
+        <span class="cmd-desc">Full posture baseline &mdash; color-coded PASS/WARN/FAIL across all categories; <code style="font-family:monospace;color:var(--accent)">--json</code> flag available</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">verify.sh</span>
+        <span class="cmd-desc">Post-run artifact checker &mdash; confirms every hardening script's changes took effect</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">ports-check.sh</span>
+        <span class="cmd-desc">Unexpected listening port detector compared against a configurable allowlist</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">ssh-audit.sh</span>
+        <span class="cmd-desc">sshd configuration checker &mdash; flags weak ciphers, MACs, and KexAlgorithms</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">headers-check.sh</span>
+        <span class="cmd-desc">Security header validator &mdash; auto-detects domains from active vhosts and checks each one</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">unattended-upgrades-check.sh</span>
+        <span class="cmd-desc">Auto-update status, last-run recency, held packages, and config file presence</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">apparmor-check.sh</span>
+        <span class="cmd-desc">AppArmor kernel module status and enforce vs. complain profile counts</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">web-roots-writable.sh</span>
+        <span class="cmd-desc">World-writable file and directory scanner under /var/www</span>
+      </div>
+      <div class="cmd-row">
+        <span class="cmd-name">suid-check.sh</span>
+        <span class="cmd-desc">SUID/SGID binary baseline and filesystem drift detection</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Quick Start ───────────────────────────────────────── -->
+<section>
+  <h2>Quick start</h2>
+  <p>From a fresh Ubuntu 24.04 VPS to a hardened baseline in under ten minutes.</p>
+  <div class="code-block"><pre><span class="comment"># 1. Clone the repo on your local machine</span>
+<span class="cmd">git clone</span> https://github.com/davidwhittington/vps-security.git
+<span class="cmd">cd</span> vps-security
+
+<span class="comment"># 2. Fill in your config &mdash; email, SSH port, SMTP relay</span>
+<span class="cmd">cp</span> config.env.example config.env
+<span class="cmd">nano</span> config.env
+
+<span class="comment"># 3. Copy config to the server and run bootstrap</span>
+<span class="cmd">scp</span> config.env root@YOUR_SERVER:/etc/vps-security/config.env
+<span class="cmd">ssh</span> root@YOUR_SERVER <span class="flag">"CONFIG_FILE=/etc/vps-security/config.env bash -s"</span> &lt; bootstrap.sh
+
+<span class="comment"># 4. Verify everything took effect</span>
+<span class="cmd">bash</span> scripts/audit/verify.sh
+
+<span class="comment"># 5. Run the full posture audit</span>
+<span class="cmd">bash</span> scripts/audit/audit.sh</pre>
+  </div>
+  <p>Not ready to commit? Pass <code style="font-family:monospace;color:var(--green)">--dry-run</code> to bootstrap.sh to print every change that would be made without touching the system.</p>
+</section>
+
+<!-- ── Docs ──────────────────────────────────────────────── -->
+<section>
+  <h2>Docs</h2>
+  <p>Reference documentation for configuration, operations, and architecture.</p>
+  <div class="guides-list">
+    <a href="https://github.com/davidwhittington/vps-security/blob/main/docs/customization.md" class="guide-card">
+      <h3>Customization Guide</h3>
+      <p>Every config.env variable explained. SMTP provider table, CSP examples, per-server config.env.local override pattern.</p>
+    </a>
+    <a href="https://github.com/davidwhittington/vps-security/blob/main/docs/RUNBOOK.md" class="guide-card">
+      <h3>Runbook</h3>
+      <p>Operational playbook &mdash; cert renewal, SSH key rotation, fail2ban unbanning, disk alerts, rollback, and adding domains.</p>
+    </a>
+    <a href="https://github.com/davidwhittington/vps-security/blob/main/docs/architecture.md" class="guide-card">
+      <h3>Architecture</h3>
+      <p>Config discovery chain, script execution order, bootstrap orchestration, audit exit codes, and the public/private submodule split.</p>
+    </a>
+    <a href="https://github.com/davidwhittington/vps-security/blob/main/docs/security/README.md" class="guide-card">
+      <h3>Security Baseline</h3>
+      <p>Minimum security requirements, fail2ban config blocks, verification commands, and recommended audit cadence.</p>
+    </a>
+    <a href="https://github.com/davidwhittington/vps-security/blob/main/CHANGELOG.md" class="guide-card">
+      <h3>Changelog</h3>
+      <p>Full version history following Keep a Changelog v1.0.0. Every script addition, change, and fix documented.</p>
+    </a>
+  </div>
+</section>
+
+<!-- ── Private data ──────────────────────────────────────── -->
+<section>
+  <h2>Private data, public tools</h2>
+  <p>
+    Audit reports, server inventories, and per-server config files contain real IPs and hostnames
+    that shouldn't live in a public repo. vps-security uses a git submodule pattern to keep the
+    tooling public and the server data private:
+  </p>
+  <div class="code-block"><pre><span class="comment"># Public repo &mdash; hardening scripts, audit tools, docs</span>
+vps-security/
+  scripts/hardening/
+  scripts/audit/
+  docs/
+  bootstrap.sh
+  config.env.example
+
+<span class="comment"># Private submodule &mdash; your own private repo</span>
+vps-security/private/
+  servers/server1.example.com/
+    config.env.local
+    AUDIT_REPORT.md
+  servers/inventory.yml</pre>
+  </div>
+  <p>
+    Clone the repo, initialize the private submodule pointing at your own private GitHub repo,
+    and your server inventory and audit history stay yours.
   </p>
 </section>
 
-<hr class="divider">
-
-<!-- ─── SCRIPT INVENTORY ──────────────────────────────────── -->
-<section>
-  <div class="section-label">scripts</div>
-  <h2 class="section-title">Full script inventory</h2>
-  <div class="inventory">
-
-    <div class="inv-panel">
-      <div class="inv-header">scripts/hardening/</div>
-      <ul class="inv-list">
-        <li class="inv-item">
-          <span class="inv-script">01-immediate-hardening.sh</span>
-          <span class="inv-desc">UFW, fail2ban, SSH hardening, sysctl kernel params</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">02-apache-hardening.sh</span>
-          <span class="inv-desc">Security headers, ServerTokens, TRACE off, .git block</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">03-setup-admin-user.sh</span>
-          <span class="inv-desc">Promote user to sudo, propagate SSH keys from root</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">04-monthly-updates-setup.sh</span>
-          <span class="inv-desc">msmtp relay, monthly apt upgrade report and cron</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">05-log-monitoring-setup.sh</span>
-          <span class="inv-desc">Logwatch, GoAccess, logrotate for toolkit logs</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">06-cert-monitor-setup.sh</span>
-          <span class="inv-desc">Weekly TLS certificate expiry alerts via email</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">07-rkhunter-setup.sh</span>
-          <span class="inv-desc">Rootkit scanner with clean-system property baseline</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">08-auditd-setup.sh</span>
-          <span class="inv-desc">CIS-aligned kernel audit ruleset via auditd</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">09-clamav-setup.sh</span>
-          <span class="inv-desc">ClamAV weekly web-root scan with quarantine and alerts</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">10-modsecurity-setup.sh</span>
-          <span class="inv-desc">ModSecurity + OWASP CRS, DetectionOnly by default</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">11-vhost-hardener.sh</span>
-          <span class="inv-desc">Options -Indexes, AllowOverride None, deny dotfiles</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">rollback.sh</span>
-          <span class="inv-desc">Restore .bak config backups from scripts 01, 02, 04, 05</span>
-        </li>
-      </ul>
-    </div>
-
-    <div class="inv-panel">
-      <div class="inv-header">scripts/audit/</div>
-      <ul class="inv-list">
-        <li class="inv-item">
-          <span class="inv-script">audit.sh</span>
-          <span class="inv-desc">Full posture baseline — PASS/WARN/FAIL, --json flag</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">verify.sh</span>
-          <span class="inv-desc">Post-run artifact checker — confirms every script took effect</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">ports-check.sh</span>
-          <span class="inv-desc">Unexpected listening port detector vs. allowlist</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">ssh-audit.sh</span>
-          <span class="inv-desc">sshd config and weak cipher/MAC/KexAlgorithm checker</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">headers-check.sh</span>
-          <span class="inv-desc">Security header validator across all active vhost domains</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">unattended-upgrades-check.sh</span>
-          <span class="inv-desc">Auto-update status, last-run recency, held packages</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">apparmor-check.sh</span>
-          <span class="inv-desc">AppArmor kernel module status and enforce/complain counts</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">web-roots-writable.sh</span>
-          <span class="inv-desc">World-writable file and directory scanner under /var/www</span>
-        </li>
-        <li class="inv-item">
-          <span class="inv-script">suid-check.sh</span>
-          <span class="inv-desc">SUID/SGID binary baseline and filesystem drift detection</span>
-        </li>
-      </ul>
-    </div>
-
-  </div>
-</section>
-
-<!-- ─── FOOTER ─────────────────────────────────────────────── -->
+<!-- ── Footer ───────────────────────────────────────────── -->
 <footer>
-  <div class="foot-inner">
-    <span>MIT License</span>
-    <span class="foot-sep">·</span>
-    <a href="https://github.com/davidwhittington/vps-security">github.com/davidwhittington/vps-security</a>
-    <span class="foot-sep">·</span>
-    <span>Ubuntu 24.04 LTS &nbsp;·&nbsp; Debian 12</span>
-  </div>
+  <p>
+    <a href="https://github.com/davidwhittington/vps-security">vps-security</a> &middot;
+    MIT License &middot;
+    <a href="https://github.com/davidwhittington/vps-security/blob/main/CHANGELOG.md">Changelog</a> &middot;
+    <a href="https://github.com/davidwhittington/vps-security/issues">Issues</a>
+  </p>
 </footer>
+
+<script>
+  function addCopyButton(container, getTextFn) {
+    var btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = 'copy';
+    container.appendChild(btn);
+
+    btn.addEventListener('click', function () {
+      var text = getTextFn();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          showCopied(btn);
+        }).catch(function () {
+          fallbackCopy(text, btn);
+        });
+      } else {
+        fallbackCopy(text, btn);
+      }
+    });
+  }
+
+  function showCopied(btn) {
+    btn.textContent = 'copied!';
+    btn.classList.add('copied');
+    setTimeout(function () {
+      btn.textContent = 'copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  }
+
+  function fallbackCopy(text, btn) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand('copy'); showCopied(btn); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  // Attach to all .code-block elements
+  document.querySelectorAll('.code-block').forEach(function (block) {
+    var pre = block.querySelector('pre');
+    addCopyButton(block, function () {
+      return (pre.innerText || pre.textContent).trim();
+    });
+  });
+
+  // Attach to the hero install block
+  var installBlock = document.querySelector('.install-block');
+  if (installBlock) {
+    var pre = installBlock.querySelector('pre');
+    addCopyButton(installBlock, function () {
+      return (pre.innerText || pre.textContent).trim();
+    });
+  }
+</script>
 
 </body>
 </html>
