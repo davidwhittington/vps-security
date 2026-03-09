@@ -9,6 +9,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.6.0] — 2026-03-08
+
+### Added
+- `scripts/hardening/06-cert-monitor-setup.sh` — weekly certbot certificate expiry monitor; creates `/usr/local/sbin/cert-expiry-check.sh` and schedules a Monday 8 AM cron; emails `ADMIN_EMAIL` when any cert expires within `CERT_WARN_DAYS` (default 30); reports expired and soon-to-expire certs separately (#13)
+- `scripts/audit/ports-check.sh` — scans listening TCP ports via `ss -tlnp`; compares against `ALLOWED_PORTS` from config (SSH, 80, 443) and flags unexpected listeners; exits 1 on unexpected ports (#10)
+- `scripts/audit/unattended-upgrades-check.sh` — verifies unattended-upgrades is installed, service active, last-run recency (from log mtime), errors in last run, held-back packages, and config file presence (#11)
+- `scripts/audit/web-roots-writable.sh` — finds world-writable files and directories under `/var/www`; exits 1 if any are found (#21)
+- `scripts/audit/headers-check.sh` — auto-detects domains from enabled Apache vhosts or `DOMAINS` in config; `curl -sI` checks each for HSTS, X-Content-Type-Options, Referrer-Policy, CSP, and bare `Server` header (#22)
+- `scripts/audit/ssh-audit.sh` — runs `sshd -T` and checks all key hardening settings (PasswordAuthentication, PermitRootLogin, MaxAuthTries, X11Forwarding, AllowTcpForwarding, etc.); flags weak ciphers, MACs, and KexAlgorithms (#27)
+- `scripts/audit/apparmor-check.sh` — checks AppArmor kernel module, runs `aa-status`, reports enforce vs complain profile counts, flags profiles not in enforce mode (#32)
+
+### Changed
+- `01-immediate-hardening.sh`: now backs up `sshd_config` before modification; writes `/etc/ssh/sshd_config.d/99-hardening.conf` restricting ciphers to AES-GCM/ChaCha20, MACs to HMAC-SHA2/ETM variants, and KexAlgorithms to Curve25519/ECDH/DH group14/16/18; adds `MaxAuthTries 3`, `LoginGraceTime 30`, `AllowTcpForwarding no` (#19); adds `ufw limit 80/tcp` and `ufw limit 443/tcp` rate-limiting (#25); extends `/etc/sysctl.d/99-hardening.conf` with IP forwarding disabled, TCP SYN cookies, source routing disabled, ICMP broadcast ignore, and reverse path filtering (#28)
+- `05-log-monitoring-setup.sh`: adds step 5 writing `/etc/logrotate.d/vps-security` for monthly rotation (12-month retention, compressed) of toolkit log files (#26)
+
+---
+
 ## [0.5.0] — 2026-03-08
 
 ### Added

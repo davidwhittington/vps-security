@@ -142,9 +142,34 @@ else
     echo "  [dry-run] Would write /var/www/html/reports/.htaccess"
 fi
 
-# --- 5/5: Initial report ---
+# --- 5/5: Logrotate configs (#26) ---
 echo ""
-echo "[5/5] Generating initial GoAccess report..."
+echo "[5/5] Configuring logrotate for toolkit log files..."
+if ! $DRYRUN; then
+    cat > /etc/logrotate.d/vps-security << 'LREOF'
+# vps-security log rotation
+
+/var/log/monthly-apt-upgrade.log
+/var/log/monthly-apt-cron.log
+/var/log/goaccess-cron.log {
+    monthly
+    rotate 12
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root adm
+}
+LREOF
+else
+    echo "  [dry-run] Would write /etc/logrotate.d/vps-security"
+    echo "    - monthly rotation, 12 months retained, compressed"
+fi
+echo "  -> Logrotate configured for toolkit logs."
+
+# --- 6/6: Initial report ---
+echo ""
+echo "[6/6] Generating initial GoAccess report..."
 if ! $DRYRUN; then
     /usr/local/sbin/goaccess-daily-report.sh
 else

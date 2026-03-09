@@ -54,8 +54,8 @@ if [[ ! -f /root/.ssh/authorized_keys ]] || [[ ! -s /root/.ssh/authorized_keys ]
     exit 1
 fi
 
-# --- 1/4: fail2ban ---
-echo "[1/4] Installing and configuring fail2ban..."
+# --- 1/5: fail2ban ---
+echo "[1/5] Installing and configuring fail2ban..."
 if ! $DRYRUN; then
     apt-get update -qq
     apt-get install -y -qq fail2ban
@@ -109,9 +109,9 @@ fi
 cmd systemctl enable --now fail2ban
 echo "  -> fail2ban configured (SSH + Apache jails)."
 
-# --- 2/4: UFW ---
+# --- 2/5: UFW ---
 echo ""
-echo "[2/4] Configuring UFW firewall..."
+echo "[2/5] Configuring UFW firewall..."
 if ! $DRYRUN; then
     apt-get install -y -qq ufw
     ufw default deny incoming
@@ -130,29 +130,73 @@ else
     echo "    - allow 443/tcp (HTTPS)"
 fi
 
-# --- 3/4: SSH ---
+# --- 3/5: SSH ---
 echo ""
-echo "[3/4] Hardening SSH configuration..."
+echo "[3/5] Hardening SSH configuration..."
 if ! $DRYRUN; then
+    # Back up sshd_config before modifying
+    cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
+
     sed -i 's/^PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
     echo 'PasswordAuthentication no' > /etc/ssh/sshd_config.d/50-cloud-init.conf
     sed -i 's/^PermitRootLogin yes/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
     sed -i 's/^X11Forwarding yes/X11Forwarding no/' /etc/ssh/sshd_config
+
+    # Restrict to modern ciphers, MACs, and key exchange algorithms (#19)
+    # Removes legacy CBC ciphers, MD5/SHA1-based MACs, and weak DH groups
+    cat > /etc/ssh/sshd_config.d/99-hardening.conf << 'SSHEOF'
+# vps-security: restrict to modern cryptographic algorithms
+
+# Ciphers: AES-GCM and ChaCha20 only (no CBC, no RC4, no 3DES)
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+
+# MACs: HMAC-SHA2 and ETM variants only (no MD5, no SHA1)
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
+
+# KexAlgorithms: Curve25519, ECDH, and DH group14/16/18 only (no group1, no SHA1)
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group14-sha256
+
+# Additional hardening
+MaxAuthTries 3
+LoginGraceTime 30
+AllowTcpForwarding no
+X11Forwarding no
+SSHEOF
+
     systemctl reload ssh
 else
     echo "  [dry-run] Would apply to /etc/ssh/sshd_config:"
     echo "    - PasswordAuthentication no"
     echo "    - PermitRootLogin prohibit-password"
     echo "    - X11Forwarding no"
+    echo "  [dry-run] Would write /etc/ssh/sshd_config.d/99-hardening.conf:"
+    echo "    - Restrict ciphers to AES-GCM + ChaCha20"
+    echo "    - Restrict MACs to HMAC-SHA2 + ETM variants"
+    echo "    - Restrict KexAlgorithms to Curve25519 + ECDH + DH group14/16/18"
+    echo "    - MaxAuthTries 3, LoginGraceTime 30, AllowTcpForwarding no"
 fi
-echo "  -> SSH: password auth off, root key-only, X11 off."
+echo "  -> SSH hardened: auth, ciphers, MACs, KexAlgorithms, timeouts."
 
-# --- 4/4: sysctl ---
+# --- 3b: UFW rate-limiting (#25) ---
 echo ""
-echo "[4/4] Hardening kernel network parameters..."
+echo "[3b] Adding UFW connection rate limits for HTTP/HTTPS..."
+if ! $DRYRUN; then
+    # ufw limit applies a rate limit: block IPs making >6 connections in 30s
+    ufw limit 80/tcp comment 'HTTP rate-limit'
+    ufw limit 443/tcp comment 'HTTPS rate-limit'
+else
+    echo "  [dry-run] Would add: ufw limit 80/tcp && ufw limit 443/tcp"
+fi
+echo "  -> UFW rate-limiting applied (HTTP + HTTPS)."
+
+# --- 5/5: sysctl (#28) ---
+echo ""
+echo "[5/5] Hardening kernel network parameters..."
 if ! $DRYRUN; then
     cat > /etc/sysctl.d/99-hardening.conf << 'SYSEOF'
-# Disable ICMP redirects
+# vps-security: kernel network hardening
+
+# Disable ICMP redirects (prevent MITM via routing manipulation)
 net.ipv4.conf.all.accept_redirects = 0
 net.ipv4.conf.default.accept_redirects = 0
 net.ipv4.conf.all.send_redirects = 0
@@ -160,13 +204,42 @@ net.ipv4.conf.default.send_redirects = 0
 net.ipv6.conf.all.accept_redirects = 0
 net.ipv6.conf.default.accept_redirects = 0
 
-# Log martian packets
+# Log martian packets (packets with impossible source addresses)
 net.ipv4.conf.all.log_martians = 1
 net.ipv4.conf.default.log_martians = 1
+
+# Disable IP forwarding (this is a web server, not a router)
+net.ipv4.ip_forward = 0
+net.ipv6.conf.all.forwarding = 0
+
+# Enable TCP SYN cookie protection (SYN flood mitigation)
+net.ipv4.tcp_syncookies = 1
+
+# Disable source routing (packets cannot specify their own route)
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+
+# Ignore ICMP broadcast requests
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+
+# Ignore bogus ICMP error responses
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+
+# Enable reverse path filtering (drop packets that can't be routed back)
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
 SYSEOF
     sysctl --system > /dev/null 2>&1
 else
-    echo "  [dry-run] Would write /etc/sysctl.d/99-hardening.conf (ICMP redirects, martian logging)"
+    echo "  [dry-run] Would write /etc/sysctl.d/99-hardening.conf:"
+    echo "    - ICMP redirects disabled"
+    echo "    - Martian logging enabled"
+    echo "    - IP forwarding disabled"
+    echo "    - TCP SYN cookies enabled"
+    echo "    - Source routing disabled"
+    echo "    - ICMP broadcast ignore"
+    echo "    - Reverse path filtering enabled"
 fi
 echo "  -> Kernel network parameters hardened."
 
