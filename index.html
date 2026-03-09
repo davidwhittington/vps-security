@@ -306,14 +306,13 @@
   </div>
 
   <div class="install-block">
-    <div class="install-label">Get started</div>
-    <pre>git clone https://github.com/davidwhittington/linux-security.git
-cd linux-security
-cp config.env.example config.env
-bash bootstrap.sh --profile baseline</pre>
+    <div class="install-label">System-wide install (recommended)</div>
+    <pre>curl -fsSL https://raw.githubusercontent.com/davidwhittington/linux-security/main/install.sh | bash
+nano /etc/linux-security/config.env
+linux-security-bootstrap --profile baseline</pre>
     <div class="install-note">
-      Every script supports <code style="font-family:monospace;color:var(--green)">--dry-run</code> &mdash; preview all changes before applying.<br>
-      Ubuntu 22.04/24.04 LTS &middot; Debian 12 &middot; Run as root
+      Installs to <code style="font-family:monospace;color:var(--green)">/opt/linux-security/</code> &middot; config in <code style="font-family:monospace;color:var(--green)">/etc/linux-security/</code> &middot; Run as root<br>
+      Ubuntu 22.04/24.04 LTS &middot; Debian 12 &middot; Every script supports <code style="font-family:monospace;color:var(--green)">--dry-run</code>
     </div>
   </div>
 </div>
@@ -500,25 +499,37 @@ bash bootstrap.sh --profile baseline</pre>
 <section>
   <h2>Quick start</h2>
   <p>From a fresh Ubuntu 24.04 or Debian 12 server to a verified security baseline.</p>
-  <div class="code-block"><pre><span class="comment"># 1. Clone the repo on your local machine</span>
+
+  <h3 style="margin-top:1.5rem;color:var(--fg-muted);font-size:0.95rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Option A &mdash; system-wide install</h3>
+  <div class="code-block"><pre><span class="comment"># 1. Install on the server (run as root)</span>
+<span class="cmd">curl</span> -fsSL https://raw.githubusercontent.com/davidwhittington/linux-security/main/install.sh | bash
+
+<span class="comment"># 2. Fill in your config &mdash; email, SSH port, SMTP relay</span>
+<span class="cmd">nano</span> /etc/linux-security/config.env
+
+<span class="comment"># 3. Run bootstrap (baseline = any server; web-server = +Apache/PHP/MySQL)</span>
+<span class="cmd">linux-security-bootstrap</span> <span class="flag">--profile baseline --dry-run</span>   <span class="comment"># preview first</span>
+<span class="cmd">linux-security-bootstrap</span> <span class="flag">--profile baseline</span>              <span class="comment"># apply</span>
+
+<span class="comment"># 4. Run the full posture audit</span>
+<span class="cmd">linux-security-audit</span> <span class="flag">--profile baseline</span></pre>
+  </div>
+
+  <h3 style="margin-top:1.5rem;color:var(--fg-muted);font-size:0.95rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Option B &mdash; clone and run</h3>
+  <div class="code-block"><pre><span class="comment"># 1. Clone the repo</span>
 <span class="cmd">git clone</span> https://github.com/davidwhittington/linux-security.git
 <span class="cmd">cd</span> linux-security
 
-<span class="comment"># 2. Fill in your config &mdash; email, SSH port, SMTP relay</span>
-<span class="cmd">cp</span> config.env config.env.local   <span class="comment"># or edit config.env directly</span>
+<span class="comment"># 2. Fill in your config</span>
+<span class="cmd">cp</span> config.env.example config.env
 <span class="cmd">nano</span> config.env
 
-<span class="comment"># 3. Run bootstrap (baseline = any server; web-server = +Apache/PHP/MySQL)</span>
-<span class="cmd">bash</span> bootstrap.sh <span class="flag">--profile baseline --dry-run</span>   <span class="comment"># preview first</span>
-<span class="cmd">bash</span> bootstrap.sh <span class="flag">--profile baseline</span>              <span class="comment"># apply</span>
-
-<span class="comment"># 4. Verify everything took effect</span>
-<span class="cmd">bash</span> scripts/core/audit/verify.sh
-
-<span class="comment"># 5. Run the full posture audit</span>
+<span class="comment"># 3. Bootstrap and audit</span>
+<span class="cmd">bash</span> bootstrap.sh <span class="flag">--profile baseline --dry-run</span>
+<span class="cmd">bash</span> bootstrap.sh <span class="flag">--profile baseline</span>
 <span class="cmd">bash</span> scripts/audit/audit.sh <span class="flag">--profile baseline</span></pre>
   </div>
-  <p>Pass <code style="font-family:monospace;color:var(--green)">--dry-run</code> to bootstrap.sh to print every change that would be made without touching the system.</p>
+  <p>Pass <code style="font-family:monospace;color:var(--green)">--dry-run</code> to preview every change before anything touches the system.</p>
 </section>
 
 <!-- ── Docs ──────────────────────────────────────────────── -->
