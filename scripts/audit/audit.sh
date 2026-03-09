@@ -270,8 +270,9 @@ if [[ "$PROFILE" == "web-server" ]]; then
 echo ""
 echo "[ TLS Certificates ]"
 
-CERTBOT_CMD=$(command -v certbot || echo /snap/bin/certbot)
-if [[ -x "$CERTBOT_CMD" ]]; then
+CERTBOT_CMD=$(command -v certbot 2>/dev/null)
+[[ -z "$CERTBOT_CMD" && -x /snap/bin/certbot ]] && CERTBOT_CMD=/snap/bin/certbot
+if [[ -n "$CERTBOT_CMD" ]]; then
     CERT_OUTPUT=$("$CERTBOT_CMD" certificates 2>/dev/null || true)
     EXPIRING=$(echo "$CERT_OUTPUT" | grep "VALID:" | grep -E "VALID: [0-9] days|VALID: [12][0-9] days" || true)
     EXPIRED=$(echo "$CERT_OUTPUT" | grep "INVALID\|EXPIRED" || true)
@@ -287,7 +288,7 @@ if [[ -x "$CERTBOT_CMD" ]]; then
     fi
 else
     check "TLS certificates" "WARN" "certbot not found — cannot check cert expiry" \
-        "Install certbot: snap install --classic certbot"
+        "Install certbot: apt-get install -y certbot (Debian) or snap install --classic certbot (Ubuntu)"
 fi
 fi # end web-server profile
 

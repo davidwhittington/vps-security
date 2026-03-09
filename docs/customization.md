@@ -228,10 +228,6 @@ If running on Debian 12, install certbot via apt rather than snap:
 apt install certbot python3-certbot-apache
 ```
 
-Then update the certbot path check in `web/03-cert-monitor-setup.sh` if needed:
+All scripts auto-detect the certbot path — they check `command -v certbot` first, then fall back to `/snap/bin/certbot` only if it exists. No manual path changes are needed on Debian 12.
 
-```bash
-CERTBOT="$(command -v certbot)"
-```
-
-All other scripts run without modification on Debian 12. Testing on Debian 12 is tracked in [issue #9](https://github.com/davidwhittington/linux-security/issues/9).
+All other scripts run without modification on Debian 12. Testing on Debian 12 is tracked in [issue #100](https://github.com/davidwhittington/linux-security/issues/100).

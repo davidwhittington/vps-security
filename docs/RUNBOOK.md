@@ -56,20 +56,23 @@ bash scripts/audit/audit.sh
 
 ## Certificate Renewal
 
-Certificates auto-renew via certbot's snap timer. If a cert fails to renew:
+Certificates auto-renew via certbot's built-in timer. On Ubuntu (snap install), use `certbot` or `/snap/bin/certbot`. On Debian 12 (apt install), `certbot` is in PATH directly.
 
 ```bash
 # Check cert status
-/snap/bin/certbot certificates
+certbot certificates
 
 # Test renewal
-/snap/bin/certbot renew --dry-run
+certbot renew --dry-run
 
 # Force renew a specific domain
-/snap/bin/certbot renew --cert-name example.com --force-renewal
+certbot renew --cert-name example.com --force-renewal
 
-# Check timer status
+# Check timer status (Ubuntu/snap)
 systemctl status snap.certbot.renew.timer
+
+# Check timer status (Debian/apt)
+systemctl status certbot.timer
 ```
 
 If the weekly cert monitor fires an alert email:
@@ -79,7 +82,7 @@ If the weekly cert monitor fires an alert email:
 /usr/local/sbin/cert-expiry-check.sh
 
 # Renew and reload Apache
-/snap/bin/certbot renew && systemctl reload apache2
+certbot renew && systemctl reload apache2
 ```
 
 ---
@@ -259,7 +262,7 @@ Rollback only restores config file backups. It does not remove packages or cron 
 a2ensite <domain>.conf
 apache2ctl configtest && systemctl reload apache2
 
-/snap/bin/certbot --apache -d <domain> -d www.<domain>
+certbot --apache -d <domain> -d www.<domain>
 ```
 
 4. Run the header checker to verify security posture:

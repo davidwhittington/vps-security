@@ -74,8 +74,12 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-if ! command -v certbot &>/dev/null && ! /snap/bin/certbot --version &>/dev/null 2>&1; then
+_CERTBOT_CMD=$(command -v certbot 2>/dev/null)
+[[ -z "$_CERTBOT_CMD" && -x /snap/bin/certbot ]] && _CERTBOT_CMD=/snap/bin/certbot
+if [[ -z "$_CERTBOT_CMD" ]]; then
     echo "WARNING: certbot not found. Install certbot before running this script." >&2
+    echo "  Ubuntu: snap install --classic certbot" >&2
+    echo "  Debian: apt-get install -y certbot python3-certbot-apache" >&2
 fi
 
 # --- Create monitor script ---
@@ -90,10 +94,11 @@ set -uo pipefail
 EMAIL="${ADMIN_EMAIL}"
 HOSTNAME=\$(hostname -f)
 WARN_DAYS="${WARN_DAYS}"
-CERTBOT="\$(command -v certbot || echo /snap/bin/certbot)"
+CERTBOT=\$(command -v certbot 2>/dev/null)
+[[ -z "\$CERTBOT" && -x /snap/bin/certbot ]] && CERTBOT=/snap/bin/certbot
 
-if [[ ! -x "\$CERTBOT" ]]; then
-    echo "certbot not found at \$CERTBOT" | mail -s "[\$HOSTNAME] Cert check failed" "\$EMAIL" || true
+if [[ -z "\$CERTBOT" || ! -x "\$CERTBOT" ]]; then
+    echo "certbot not found" | mail -s "[\$HOSTNAME] Cert check failed" "\$EMAIL" || true
     exit 1
 fi
 

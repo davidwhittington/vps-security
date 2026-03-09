@@ -43,7 +43,7 @@ if [[ -f /etc/os-release ]]; then
     if [[ "$OS_ID" == "ubuntu" || "$OS_ID" == "debian" ]]; then
         check_pass "OS: ${OS_NAME}"
     else
-        check_fail "OS: ${OS_NAME}" "vps-security targets Ubuntu 24.04 / Debian 12. Other distros may work but are untested."
+        check_fail "OS: ${OS_NAME}" "linux-security targets Ubuntu 22.04/24.04 and Debian 12. Other distros may work but are untested."
     fi
 
     if [[ "$OS_ID" == "ubuntu" && "${OS_VER:-0}" < "22.04" ]]; then
@@ -121,11 +121,16 @@ done
 
 # --- Script 06 / certbot ---
 section_header "Script 06 — TLS Certificates"
-CERTBOT_CMD=$(command -v certbot 2>/dev/null || echo /snap/bin/certbot)
-if [[ -x "$CERTBOT_CMD" ]]; then
+CERTBOT_CMD=$(command -v certbot 2>/dev/null)
+[[ -z "$CERTBOT_CMD" && -x /snap/bin/certbot ]] && CERTBOT_CMD=/snap/bin/certbot
+if [[ -n "$CERTBOT_CMD" ]]; then
     check_pass "certbot found: ${CERTBOT_CMD}"
 else
-    check_warn "certbot not found" "Install before running 06-cert-monitor-setup.sh: snap install --classic certbot"
+    if [[ "${OS_ID:-}" == "debian" ]]; then
+        check_warn "certbot not found" "Install: apt-get install -y certbot python3-certbot-apache"
+    else
+        check_warn "certbot not found" "Install: snap install --classic certbot  OR  apt-get install -y certbot"
+    fi
 fi
 
 # --- config.env ---
@@ -145,10 +150,14 @@ fi
 
 # --- Network connectivity ---
 section_header "Network"
-if curl -s --max-time 5 https://archive.ubuntu.com &>/dev/null; then
-    check_pass "Internet connectivity (archive.ubuntu.com reachable)"
+# Use distro-specific mirror, fall back to Cloudflare DNS as a neutral target
+_CONN_TARGET="https://cloudflare.com"
+[[ "${OS_ID:-}" == "ubuntu" ]] && _CONN_TARGET="https://archive.ubuntu.com"
+[[ "${OS_ID:-}" == "debian" ]] && _CONN_TARGET="https://deb.debian.org"
+if curl -s --max-time 5 "$_CONN_TARGET" &>/dev/null; then
+    check_pass "Internet connectivity (${_CONN_TARGET} reachable)"
 else
-    check_warn "Internet connectivity" "Cannot reach archive.ubuntu.com — apt-get installs may fail"
+    check_warn "Internet connectivity" "Cannot reach ${_CONN_TARGET} — apt-get installs may fail"
 fi
 
 summary "Pre-flight check complete."
