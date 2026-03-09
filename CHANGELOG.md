@@ -9,6 +9,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.8.0] — 2026-03-09
+
+### Added
+- `lib/output.sh` — shared console output library; `check_pass/fail/warn/info`, `banner`, `section_header`, `summary`; auto-disables color when not a TTY; new audit scripts source this rather than duplicating color logic (#55)
+- `scripts/audit/firewall-check.sh` — UFW rules validator; active status, default deny-incoming, required port rules (SSH/HTTP/HTTPS), and rate-limiting on 80/443 (#38)
+- `scripts/audit/users-check.sh` — privileged user audit; UID-0 accounts, login-shell users, sudo group membership, NOPASSWD sudoers rules, empty passwords, locked accounts with SSH keys (#62)
+- `scripts/audit/services-check.sh` — systemd service baseline and drift detector; `--update` refreshes baseline (#52)
+- `scripts/audit/cron-audit.sh` — full cron inventory (crontab, /etc/cron.d/, periodic dirs, user crontabs); flags root jobs executing scripts in world-writable directories (#56)
+- `scripts/audit/smtp-check.sh` — SMTP relay health check; msmtp install, config, TCP reachability, log errors; `--send` flag sends a live test email (#44)
+- `scripts/hardening/12-apache-tls-hardening.sh` — TLS 1.2+, modern ECDHE/DHE cipher suites, SSLHonorCipherOrder, OCSP stapling, no session tickets (#59)
+- `scripts/hardening/13-apache-dos-mitigation.sh` — mod_reqtimeout (Slowloris) and mod_evasive (HTTP flood) with tuned defaults and optional email alert (#48, #45)
+- `scripts/hardening/14-fail2ban-recidive.sh` — recidive jail (1-week ban after 5 bans in 12h) and SSH login email notification via /etc/ssh/sshrc (#40, #41)
+- `CONTRIBUTING.md` — script style guide, dry-run requirements, idempotency rules, config convention, output standards, PR process, shellcheck requirements (#63)
+- `docs/UPGRADE.md` — guide for re-applying updated scripts to existing servers; covers CHANGELOG review, dry-run, targeted re-runs, rollback, version tracking (#65)
+
+### Changed
+- `scripts/audit/audit.sh`: `--report [md|html]` generates a formatted audit report with FAIL/WARN/PASS sections and per-finding remediation suggestions; `--output <path>` sets the output file; remediation text added to all checks
+
+---
+
 ## [0.7.0] — 2026-03-08
 
 ### Added
