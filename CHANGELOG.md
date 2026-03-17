@@ -7,6 +7,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- `docs/security/README.md` — Apache fail2ban jails section: required `apache-badbots`, `apache-botsearch`, and `apache-scanners` jails for web-server profile; includes full `jail.local` config, custom `apache-scanners` filter for both `combined` and `vhost_combined` log formats, and `backend = auto` requirement (without it, fail2ban watches the systemd journal and never sees Apache log traffic)
+- `docs/security/README.md` — `mod_remoteip` / Cloudflare proxy IP resolution section: if vhosts are behind Cloudflare or any reverse proxy, Apache logs the proxy IP which breaks fail2ban; documents `remoteip-cloudflare.conf` with full Cloudflare IPv4/IPv6 ranges, enable commands, and verification step
+- `docs/security/README.md` — Netdata alert tuning section: documents WARNING threshold override for `web_log_1m_bad_requests` (30% → 50%) to account for normal internet scanner background noise once Apache jails are suppressing actual threats
+- `docs/RUNBOOK.md` — "Netdata — Bad Request Alert" section: triage steps to distinguish scanner noise from real incidents; fail2ban backend diagnostic; threshold tuning reference
+- `docs/security/README.md` — added "Apache intrusion prevention" and "Proxy IP resolution" rows to Required controls table
+
+### Changed
+- `docs/RUNBOOK.md` — updated Fail2ban unban section to include all four jails (`sshd`, `apache-badbots`, `apache-botsearch`, `apache-scanners`) and added note about journal vs file backend diagnostic
+- `docs/RUNBOOK.md` — Last updated date updated to 2026-03-17
+
+- `bootstrap.sh` single-prompt confirmation: `require_confirm` now sets `CONFIRM=true` so sub-scripts receive `--confirm` automatically and do not re-prompt; running `bash bootstrap.sh` now fires exactly one AGREE prompt for the entire run
+- `scripts/web/audit/access-log-anomaly.sh` — Apache access log anomaly detector; flags high-volume IPs (configurable threshold), known scanner/attack-tool user agents, IPs with elevated 404 rates (path scanning), and requests to common attack paths; exits 1 if anomalies detected; closes #74
+- `docs/ssh-2fa.md` — TOTP-based SSH two-factor authentication guide; covers libpam-google-authenticator setup, PAM and sshd_config changes, safe testing procedure, multi-user setup, and automation caveats; closes #75
+- `docs/GLOSSARY.md` — security terminology reference covering ACME, AIDE, AppArmor, auditd, certbot, CSP, fail2ban jails, HSTS, iptables, KexAlgorithm, Let's Encrypt, Logwatch, ModSecurity, OCSP stapling, OWASP CRS, PAM, rkhunter, TOTP, UFW, WAF, and more; closes #72
+
+### Changed
+- `docs/RUNBOOK.md` — expanded Certificate Renewal section into two: existing quick-reference commands retained, new "Certbot Renewal Failures" section added covering ACME HTTP-01 failures, rate limits, snap/apt plugin conflicts, DNS propagation delays, and expired cert recovery; closes #69
+- `docs/customization.md` — added "Confirmation Prompts" section documenting single-AGREE-prompt behavior, `--confirm` flag, and a behavior table covering all invocation combinations
+- `docs/RUNBOOK.md` — added note in Initial Provisioning explaining single-prompt bootstrap behavior and `--confirm` for non-interactive use
+- `README.md` — added `--confirm` to Quick Start examples; added links to `docs/ssh-2fa.md` and `docs/GLOSSARY.md` in Docs section
+
 ---
 
 ## [1.1.0] — 2026-03-09

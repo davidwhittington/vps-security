@@ -320,6 +320,8 @@ git commit -m "Add private submodule"
 - [Customization Guide](docs/customization.md) — config.env and config.web.env variables explained
 - [Architecture](docs/architecture.md) — how the toolkit fits together
 - [Security Baseline](docs/security/README.md) — requirements, headers, audit cadence
+- [SSH Two-Factor Authentication](docs/ssh-2fa.md) — optional TOTP setup guide
+- [Glossary](docs/GLOSSARY.md) — terminology reference for security terms used throughout
 - [Audit Report Template](docs/TEMPLATE.md) — blank template for documenting findings
 - [VPS Hardening Guide](docs/VPS_HARDENING_GUIDE.html) — standalone offline reference
 - [Changelog](CHANGELOG.md) — version history
