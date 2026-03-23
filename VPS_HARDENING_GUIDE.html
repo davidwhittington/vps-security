@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VPS Security Hardening Guide — Template</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --orange: #db6d28;
+    --code-bg: #0d1117;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 2rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  h2 {
+    font-size: 1.5rem;
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.3rem;
+  }
+  h3 {
+    font-size: 1.15rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--green);
+  }
+  h4 {
+    font-size: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 0.3rem;
+    color: var(--text-muted);
+  }
+  p, li { margin-bottom: 0.5rem; }
+  ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+    margin: 0.75rem 0 1rem;
+    font-size: 0.85em;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9em;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+  }
+  th {
+    background: var(--surface);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  tr:nth-child(even) { background: var(--surface); }
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .critical { background: var(--red); color: #fff; }
+  .high { background: var(--orange); color: #fff; }
+  .medium { background: var(--yellow); color: #000; }
+  .low { background: var(--text-muted); color: #000; }
+  .meta {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    margin-bottom: 2rem;
+  }
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: var(--surface);
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .callout.warning {
+    border-left-color: var(--yellow);
+  }
+  .callout.danger {
+    border-left-color: var(--red);
+  }
+  .phase {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+  .phase-num {
+    display: inline-block;
+    background: var(--accent);
+    color: #000;
+    font-weight: 700;
+    width: 1.75rem;
+    height: 1.75rem;
+    line-height: 1.75rem;
+    text-align: center;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    font-size: 0.85em;
+  }
+  .redacted {
+    background: var(--red);
+    color: var(--red);
+    border-radius: 3px;
+    padding: 0.1rem 0.4rem;
+    cursor: help;
+  }
+  .redacted:hover { color: #fff; }
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .toc ol { margin-bottom: 0; }
+  .toc li { margin-bottom: 0.25rem; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li { padding: 0.25rem 0; }
+  .checklist li::before { content: "☐ "; opacity: 0.5; }
+</style>
+</head>
+<body>
+
+<h1>VPS Security Hardening Guide</h1>
+<p class="meta">
+  Template based on audit of <strong>server1.ipvegan.com</strong> (159.198.64.231)<br>
+  Ubuntu 24.04 LTS &bull; Apache 2.4 &bull; DigitalOcean<br>
+  First authored: 2026-03-04
+</p>
+
+<div class="callout">
+  <strong>Purpose:</strong> This document is a reusable template for hardening new VPS deployments. It covers the full process from initial audit through remediation, including scripts, email alerting, and log monitoring.
+</div>
+
+<div class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#overview">Overview &amp; Architecture</a></li>
+    <li><a href="#audit">Security Audit Process</a></li>
+    <li><a href="#phase1">Phase 1 — Immediate Hardening (SSH, Firewall, Fail2Ban)</a></li>
+    <li><a href="#phase2">Phase 2 — Apache Hardening</a></li>
+    <li><a href="#phase3">Phase 3 — Admin User Setup</a></li>
+    <li><a href="#phase4">Phase 4 — Automated Updates &amp; Email Reports</a></li>
+    <li><a href="#phase5">Phase 5 — Log Monitoring (Logwatch + GoAccess)</a></li>
+    <li><a href="#accounts">Service Accounts &amp; Credentials</a></li>
+    <li><a href="#cron">Scheduled Jobs Summary</a></li>
+    <li><a href="#checklist">Full Hardening Checklist</a></li>
+    <li><a href="#reference">Quick Reference Commands</a></li>
+  </ol>
+</div>
+
+<hr>
+
+<h2 id="overview">1. Overview &amp; Architecture</h2>
+
+<p>This guide addresses the most common security gaps found on a fresh or lightly configured VPS running Ubuntu with Apache. The hardening is done in five phases, each with a corresponding shell script in the <code>scripts/</code> directory.</p>
+
+<table>
+  <tr><th>Script</th><th>Purpose</th><th>Risk Level</th></tr>
+  <tr><td><code>01-immediate-hardening.sh</code></td><td>Firewall, fail2ban, SSH lockdown, sysctl</td><td><span class="badge critical">Critical</span></td></tr>
+  <tr><td><code>02-apache-hardening.sh</code></td><td>Security headers, info disclosure, mod_status</td><td><span class="badge high">High</span></td></tr>
+  <tr><td><code>03-setup-admin-user.sh</code></td><td>Dedicated sudo user, disable cloud-init NOPASSWD</td><td><span class="badge medium">Medium</span></td></tr>
+  <tr><td><code>04-monthly-updates-setup.sh</code></td><td>Automated monthly apt upgrade with email report</td><td><span class="badge medium">Medium</span></td></tr>
+  <tr><td><code>05-log-monitoring-setup.sh</code></td><td>Logwatch daily digest + GoAccess traffic reports</td><td><span class="badge low">Low</span></td></tr>
+</table>
+
+<div class="callout warning">
+  <strong>Important:</strong> Always run scripts in order. Phase 1 must be completed first — it addresses actively exploitable vulnerabilities. Each script includes pre-flight checks and will abort on errors.
+</div>
+
+<h2 id="audit">2. Security Audit Process</h2>
+
+<p>Before hardening, perform a read-only audit via SSH to assess the current security posture. The audit covers these categories:</p>
+
+<table>
+  <tr><th>Category</th><th>Key Commands</th><th>What to Look For</th></tr>
+  <tr><td>System Overview</td><td><code>uname -a</code>, <code>ss -tlnp</code></td><td>OS version, open ports, unexpected services</td></tr>
+  <tr><td>SSH Config</td><td><code>cat /etc/ssh/sshd_config</code></td><td>Root login, password auth, protocol version</td></tr>
+  <tr><td>User Accounts</td><td><code>grep -v nologin /etc/passwd</code>, <code>awk -F: '$3==0' /etc/passwd</code></td><td>UID 0 accounts, unauthorized users, login shells</td></tr>
+  <tr><td>Firewall</td><td><code>ufw status</code>, <code>iptables -L -n</code></td><td>Whether active, permissive rules</td></tr>
+  <tr><td>Updates</td><td><code>apt list --upgradable</code></td><td>Pending security patches, unattended-upgrades config</td></tr>
+  <tr><td>Apache</td><td><code>apache2ctl -M</code>, vhost configs</td><td>ServerTokens, directory listing, loaded modules</td></tr>
+  <tr><td>TLS/Certs</td><td><code>certbot certificates</code></td><td>Expiry dates, coverage, protocol/cipher strength</td></tr>
+  <tr><td>Intrusion Detection</td><td><code>fail2ban-client status</code>, <code>grep "Failed" /var/log/auth.log</code></td><td>Active jails, brute-force attempts</td></tr>
+  <tr><td>File Permissions</td><td><code>find /var/www -perm -002</code>, <code>find / -perm /6000</code></td><td>World-writable web files, unusual SUID binaries</td></tr>
+  <tr><td>Kernel/Network</td><td><code>sysctl</code> checks</td><td>IP forwarding, ICMP redirects, SYN cookies</td></tr>
+  <tr><td>Scheduled Tasks</td><td><code>crontab -l</code>, <code>systemctl list-timers</code></td><td>Unexpected cron jobs or timers</td></tr>
+</table>
+
+<h2 id="phase1">3. Phase 1 — Immediate Hardening</h2>
+<p><strong>Script:</strong> <code>scripts/01-immediate-hardening.sh</code></p>
+
+<div class="callout danger">
+  <strong>Run this first.</strong> On a typical unconfigured VPS, the server is actively being brute-forced within minutes of going online. This script addresses the three most critical gaps.
+</div>
+
+<h3>3a. Install &amp; Configure Fail2Ban</h3>
+<p>Blocks IPs after repeated failed SSH login attempts.</p>
+<pre><code>apt install -y fail2ban
+
+cat &gt; /etc/fail2ban/jail.local &lt;&lt; 'EOF'
+[DEFAULT]
+bantime = 3600
+findtime = 600
+maxretry = 3
+banaction = iptables-multiport
+
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 3
+EOF
+
+systemctl enable --now fail2ban</code></pre>
+
+<h3>3b. Enable UFW Firewall</h3>
+<p>Restricts inbound traffic to SSH, HTTP, and HTTPS only.</p>
+<pre><code>ufw default deny incoming
+ufw default allow outgoing
+ufw allow 22/tcp    # SSH
+ufw allow 80/tcp    # HTTP
+ufw allow 443/tcp   # HTTPS
+ufw --force enable</code></pre>
+
+<h3>3c. Harden SSH</h3>
+<p>Disable password auth, restrict root to key-only, disable X11 forwarding.</p>
+<pre><code># Disable password authentication
+sed -i 's/^PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+echo 'PasswordAuthentication no' &gt; /etc/ssh/sshd_config.d/50-cloud-init.conf
+
+# Root login: key-only (use "no" to fully disable)
+sed -i 's/^PermitRootLogin yes/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+
+# Disable X11 forwarding
+sed -i 's/^X11Forwarding yes/X11Forwarding no/' /etc/ssh/sshd_config
+
+# Ubuntu 24.04 uses "ssh" not "sshd"
+systemctl reload ssh</code></pre>
+
+<div class="callout warning">
+  <strong>Before reloading SSH:</strong> Verify your SSH key is in <code>/root/.ssh/authorized_keys</code>. Test in a second terminal before closing your current session.
+</div>
+
+<h3>3d. Kernel Network Hardening</h3>
+<pre><code>cat &gt; /etc/sysctl.d/99-hardening.conf &lt;&lt; 'EOF'
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1
+EOF
+
+sysctl --system</code></pre>
+
+<h2 id="phase2">4. Phase 2 — Apache Hardening</h2>
+<p><strong>Script:</strong> <code>scripts/02-apache-hardening.sh</code></p>
+
+<h3>4a. Enable mod_headers</h3>
+<pre><code>a2enmod headers</code></pre>
+
+<h3>4b. Update security.conf</h3>
+<pre><code>cat &gt; /etc/apache2/conf-enabled/security.conf &lt;&lt; 'EOF'
+ServerTokens Prod
+ServerSignature Off
+TraceEnable Off
+
+# Block version control directories
+RedirectMatch 404 /\.git
+RedirectMatch 404 /\.svn
+
+&lt;IfModule mod_headers.c&gt;
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set X-XSS-Protection "0"
+
+    # CSP frame-ancestors: allow your own domains to iframe each other.
+    # Customize this list for each server deployment.
+    Header always set Content-Security-Policy "frame-ancestors 'self' *.yourdomain.com yourdomain.com otherdomain.com"
+&lt;/IfModule&gt;
+EOF</code></pre>
+
+<div class="callout">
+  <strong>iframe Note:</strong> We use <code>Content-Security-Policy: frame-ancestors</code> instead of <code>X-Frame-Options</code> because it supports multiple domains. List all domains that need to embed each other. This was necessary because <code>davidwhittington.com</code> iframes sites like <code>ipvegan.com</code>.
+</div>
+
+<h3>4c. Disable mod_status</h3>
+<pre><code>a2dismod status</code></pre>
+
+<h3>4d. Test &amp; Reload</h3>
+<pre><code>apache2ctl configtest &amp;&amp; systemctl reload apache2</code></pre>
+
+<h2 id="phase3">5. Phase 3 — Admin User Setup</h2>
+<p><strong>Script:</strong> <code>scripts/03-setup-admin-user.sh</code></p>
+
+<p>Creates a proper admin user with sudo access so you don't need to SSH as root for daily tasks.</p>
+
+<pre><code># Update shell and add to sudo group
+usermod -s /bin/bash USERNAME
+usermod -aG sudo USERNAME
+
+# Copy SSH keys from root
+mkdir -p /home/USERNAME/.ssh
+cp /root/.ssh/authorized_keys /home/USERNAME/.ssh/
+chown -R USERNAME:USERNAME /home/USERNAME/.ssh
+chmod 700 /home/USERNAME/.ssh
+chmod 600 /home/USERNAME/.ssh/authorized_keys
+
+# Remove cloud-init NOPASSWD rule
+rm -f /etc/sudoers.d/90-cloud-init-users</code></pre>
+
+<h4>Root Access Decision</h4>
+<table>
+  <tr><th>Option</th><th>sshd_config Setting</th><th>When to Use</th></tr>
+  <tr><td>Key-only root (recommended)</td><td><code>PermitRootLogin prohibit-password</code></td><td>Need root fallback access</td></tr>
+  <tr><td>No root SSH</td><td><code>PermitRootLogin no</code></td><td>Maximum security, admin user only</td></tr>
+</table>
+
+<h2 id="phase4">6. Phase 4 — Automated Updates &amp; Email Reports</h2>
+<p><strong>Script:</strong> <code>scripts/04-monthly-updates-setup.sh</code></p>
+
+<h3>6a. SMTP Relay via msmtp</h3>
+<p>Install <code>msmtp</code> and configure it to send email through an external SMTP account.</p>
+
+<pre><code>apt install -y msmtp msmtp-mta mailutils
+
+cat &gt; /etc/msmtprc &lt;&lt; 'EOF'
+defaults
+auth           on
+tls            on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+logfile        /var/log/msmtp.log
+
+account        default
+host           mail.privateemail.com
+port           587
+from           sender@yourdomain.com
+user           sender@yourdomain.com
+password       <span class="redacted">REDACTED</span>
+
+EOF
+
+chmod 600 /etc/msmtprc</code></pre>
+
+<div class="callout">
+  <strong>SMTP Provider Notes:</strong> Namecheap Private Email works with regular account passwords. App passwords generated for CalDAV/CardDAV/Backup do <em>not</em> authorize SMTP. Microsoft 365 managed accounts may not allow app passwords — use a provider you control.
+</div>
+
+<h3>6b. Monthly Update Report</h3>
+<p>A cron job at <code>0 3 1 * *</code> (3 AM UTC, 1st of month) runs <code>apt upgrade</code> and emails a report covering:</p>
+<ul>
+  <li>Packages upgraded and any remaining</li>
+  <li>Kernel version check (reboot needed?)</li>
+  <li>Disk usage</li>
+  <li>Fail2ban status and banned IPs</li>
+  <li>TLS certificate expiry dates</li>
+</ul>
+
+<h2 id="phase5">7. Phase 5 — Log Monitoring</h2>
+<p><strong>Script:</strong> <code>scripts/05-log-monitoring-setup.sh</code></p>
+
+<h3>7a. Logwatch — Daily Email Digest</h3>
+<p>Parses all system logs and emails a summary. Runs automatically via <code>/etc/cron.daily/</code>.</p>
+
+<pre><code>apt install -y logwatch
+
+cat &gt; /etc/logwatch/conf/logwatch.conf &lt;&lt; 'EOF'
+Output = mail
+MailTo = recipient@yourdomain.com
+MailFrom = sender@yourdomain.com
+Detail = High
+Range = yesterday
+Service = All
+Format = html
+mailer = "/usr/bin/msmtp"
+EOF</code></pre>
+
+<p>Logwatch covers: SSH auth, Apache, fail2ban bans, dpkg installs, sudo usage, disk space, and more.</p>
+
+<h3>7b. GoAccess — Apache Traffic Reports</h3>
+<p>Generates an interactive HTML dashboard from Apache access logs. Runs daily at 4 AM UTC.</p>
+
+<pre><code>apt install -y goaccess apache2-utils
+
+# Daily report generation
+cat $LOGS | goaccess \
+    --log-format=COMBINED \
+    --no-global-config \
+    --output="/var/www/html/reports/traffic-report.html"</code></pre>
+
+<p>The report directory is protected with HTTP basic auth:</p>
+<pre><code>htpasswd -cb /etc/apache2/.htpasswd-reports admin "GENERATED_PASSWORD"
+
+# /var/www/html/reports/.htaccess
+AuthType Basic
+AuthName "Server Reports"
+AuthUserFile /etc/apache2/.htpasswd-reports
+Require valid-user</code></pre>
+
+<h3>7c. Future Consideration: CrowdSec</h3>
+<p>For servers needing more active protection, consider <a href="https://www.crowdsec.net/">CrowdSec</a> as a fail2ban replacement. It adds crowdsourced IP blocklists (~50 MB RAM). Evaluate on a per-server basis — don't run both simultaneously.</p>
+
+<h2 id="accounts">8. Service Accounts &amp; Credentials</h2>
+
+<table>
+  <tr><th>Service</th><th>Account</th><th>Password</th><th>Purpose</th></tr>
+  <tr><td>SMTP Relay (msmtp)</td><td><code>george@jetsons.io</code></td><td><span class="redacted">REDACTED</span></td><td>Sends email alerts from server</td></tr>
+  <tr><td>SMTP Provider</td><td>Namecheap Private Email</td><td>—</td><td><code>mail.privateemail.com:587</code></td></tr>
+  <tr><td>Email Recipient</td><td><code>davidwhittington@icloud.com</code></td><td>—</td><td>Receives all alerts and reports</td></tr>
+  <tr><td>GoAccess Reports</td><td><code>admin</code></td><td><span class="redacted">REDACTED</span></td><td>HTTP basic auth for <code>/reports/</code></td></tr>
+</table>
+
+<div class="callout warning">
+  <strong>Credential Storage:</strong> The SMTP password is stored in <code>/etc/msmtprc</code> (chmod 600, root only). The GoAccess report password is in <code>/etc/apache2/.htpasswd-reports</code> (hashed). Never commit credentials to Git.
+</div>
+
+<h2 id="cron">9. Scheduled Jobs Summary</h2>
+
+<table>
+  <tr><th>Job</th><th>Schedule</th><th>Output</th></tr>
+  <tr><td>Logwatch daily digest</td><td>Daily (via <code>/etc/cron.daily/</code>)</td><td>Email to recipient</td></tr>
+  <tr><td>GoAccess traffic report</td><td><code>0 4 * * *</code> (4 AM UTC daily)</td><td>HTML at <code>/reports/traffic-report.html</code></td></tr>
+  <tr><td>Monthly apt upgrade</td><td><code>0 3 1 * *</code> (3 AM UTC, 1st of month)</td><td>Email report + <code>/var/log/monthly-apt-upgrade.log</code></td></tr>
+  <tr><td>Certbot renewal</td><td>Systemd timer (~2x daily)</td><td>Auto-renews Let's Encrypt certs</td></tr>
+  <tr><td>Unattended upgrades</td><td>Daily (apt timer)</td><td>Auto-installs security patches</td></tr>
+</table>
+
+<h2 id="checklist">10. Full Hardening Checklist</h2>
+
+<p>Use this checklist for each new server deployment:</p>
+
+<h4>Critical — Do Immediately</h4>
+<ul class="checklist">
+  <li>Install and enable fail2ban with sshd jail</li>
+  <li>Enable UFW firewall (allow 22, 80, 443 only)</li>
+  <li>Disable SSH password authentication</li>
+  <li>Set SSH root login to <code>prohibit-password</code> or <code>no</code></li>
+</ul>
+
+<h4>High — Do Same Day</h4>
+<ul class="checklist">
+  <li>Enable <code>mod_headers</code> in Apache</li>
+  <li>Set <code>ServerTokens Prod</code> and <code>ServerSignature Off</code></li>
+  <li>Add security headers (HSTS, X-Content-Type-Options, CSP frame-ancestors, Referrer-Policy)</li>
+  <li>Block <code>.git</code> / <code>.svn</code> access in Apache</li>
+  <li>Disable <code>mod_status</code> or restrict to localhost</li>
+  <li>Add <code>Options -Indexes</code> to all virtual hosts</li>
+</ul>
+
+<h4>Medium — Do This Week</h4>
+<ul class="checklist">
+  <li>Apply all pending system updates (<code>apt upgrade</code>)</li>
+  <li>Harden sysctl network parameters</li>
+  <li>Set up dedicated admin user with sudo</li>
+  <li>Disable X11Forwarding in SSH</li>
+  <li>Remove cloud-init NOPASSWD sudoers rule</li>
+  <li>Configure SMTP relay for server email</li>
+  <li>Set up monthly update cron with email report</li>
+</ul>
+
+<h4>Low — Do This Month</h4>
+<ul class="checklist">
+  <li>Install Logwatch for daily log digests</li>
+  <li>Install GoAccess for traffic monitoring</li>
+  <li>Verify certbot auto-renewal (<code>certbot renew --dry-run</code>)</li>
+  <li>Consider changing SSH port (reduces noise)</li>
+  <li>Review and reboot if newer kernel is available</li>
+  <li>Evaluate CrowdSec as fail2ban replacement</li>
+</ul>
+
+<h2 id="reference">11. Quick Reference Commands</h2>
+
+<h4>Check Security Status</h4>
+<pre><code># Firewall
+ufw status
+
+# Fail2ban — currently banned IPs
+fail2ban-client status sshd
+
+# Recent failed SSH logins
+grep "Failed password" /var/log/auth.log | tail -20
+
+# Apache security headers
+curl -sI https://yourdomain.com | grep -iE "server:|x-content|strict-transport|content-security|referrer"
+
+# Certificate expiry
+certbot certificates
+
+# Pending updates
+apt list --upgradable
+
+# Kernel check
+uname -r
+ls /boot/vmlinuz-* | sort -V | tail -1</code></pre>
+
+<h4>Service Management</h4>
+<pre><code># SSH (Ubuntu 24.04 uses "ssh" not "sshd")
+systemctl reload ssh
+systemctl status ssh
+
+# Apache
+apache2ctl configtest
+systemctl reload apache2
+
+# Fail2ban
+fail2ban-client status
+fail2ban-client set sshd unbanip 1.2.3.4
+
+# UFW
+ufw status numbered
+ufw delete RULE_NUMBER</code></pre>
+
+<hr>
+
+<p class="meta" style="margin-top: 2rem; text-align: center;">
+  Generated from the <a href="https://github.com/davidwhittington/vps-hardening">vps-hardening</a> repository.<br>
+  Scripts and audit methodology by David Whittington + Claude.
+</p>
+
+</body>
+</html>
